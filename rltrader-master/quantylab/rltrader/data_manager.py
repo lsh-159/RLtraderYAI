@@ -298,20 +298,17 @@ date	open	high	low	close	volume	per	pbr	roe	open_lastclose_ratio	high_close_rati
 # 수정 전(-)
     #df = df.fillna(method='ffill').reset_index(drop=True)          
 # 수정 후(+)
-    print(f"DEBUG // df_merge(data filtered).shape = {df.shape}")
-    print("-"*50,\
-                "\n결측치(NaN, None) 개수 : ",df.isnull().sum().sum(),"정상값 개수 : ", df.notnull().sum().sum(), \
-                "\n","-"*50,
-                "\n결측치 리스트 : \n",df.isnull().sum(), "\n","-"*50 )
-    print("\nfilling Nan value with [ffill] in Dataframe")
-    print("\nfilling Nan value with [interpolate] in Dataframe")
+    # print(f"DEBUG // df_merge(data filtered).shape = {df.shape}")
+    # print("-"*50,\
+    #             "\n결측치(NaN, None) 개수 : ",df.isnull().sum().sum(),"정상값 개수 : ", df.notnull().sum().sum(), \
+    #             "\n","-"*50,
+    #             "\n결측치 리스트 : \n",df.isnull().sum(), "\n","-"*50 )
+    # print("\nfilling Nan value with [ffill] in Dataframe")
+    # print("\nfilling Nan value with [interpolate] in Dataframe")
     df_fillna = df.fillna(method='ffill').reset_index(drop=True) 
     df_interpolate = df.interpolate() 
-
-    print("\nfilling [interpolate] 이후 결측치(NaN, None) 개수 : ",df_interpolate.isnull().sum().sum())
     
     df = df_interpolate
-
 
     '''
     df.fillna(ffill : 결측값을 앞의 값으로 채우기) 채우는 방법 종류 : https://rfriend.tistory.com/262
@@ -376,10 +373,10 @@ def load_data_custom(code, date_from, date_to, ver):
     df['date'] = df['date'].str.replace('-', '')
     df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
     print(f"\tDEBUG // df_merge(data filtered from start_date to end_date).shape = {df.shape}")
-    print("\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum())
+    print("\t\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum())
     #df_fillna = df.fillna(method='ffill').reset_index(drop=True)   #ffill 방식
     df_interpolate = df.interpolate() # interpolate 방식
-    print("\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df_interpolate.isnull().sum().sum(), "(filling NaN with [interpolate]) ")
+    print("\t\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df_interpolate.isnull().sum().sum(), "(filling NaN with [interpolate]) ")
     
     df = df_interpolate
     # 데이터 조정
@@ -388,6 +385,9 @@ def load_data_custom(code, date_from, date_to, ver):
     chart_data = df[COLUMNS_CHART_DATA]
     # 학습 데이터 분리
     training_data = df[columns]
+
+    print(f"\tDEBUG // Final dataset :  \n\t\tchart_data = df[COLUMNS_CHART_DATA], training_data = df[columns]")
+    print(f"\t\tchart_data.shape {chart_data.shape}, training_data.shape= {training_data.shape}")
 
     return chart_data, training_data
 

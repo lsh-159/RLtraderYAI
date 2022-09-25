@@ -9,7 +9,7 @@ from quantylab.rltrader import utils
 from quantylab.rltrader import data_manager
 
 
-#python main.py --mode train --ver v3 --name test1 --stock_code 005930 --rl_method a2c --net dnn --start_date 20180101 --end_date 20191231
+#python main.py --mode test --ver custom --name test2 --stock_code 005930 --rl_method a2c --net dnn --start_date 20180101 --end_date 20191231 --pretrained_value_net test1_a2c_dnn_value.mdl --pretrained_policy_net test1_a2c_dnn_policy.mdl
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
