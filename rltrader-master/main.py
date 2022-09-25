@@ -14,7 +14,7 @@ from quantylab.rltrader import data_manager
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test', 'update', 'predict'], default='train')
-    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4'], default='v2')
+    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom'], default='v2')
     parser.add_argument('--name', default=utils.get_time_str())
     parser.add_argument('--stock_code', nargs='+')
     parser.add_argument('--rl_method', choices=['dqn', 'pg', 'ac', 'a2c', 'a3c', 'monkey'])
@@ -25,6 +25,8 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--discount_factor', type=float, default=0.7)
     parser.add_argument('--balance', type=int, default=100000000)
+    parser.add_argument('--pretrained_value_net', type=str, default='')
+    parser.add_argument('--pretrained_policy_net', type=str, default='')
     args = parser.parse_args()
 
     # 학습기 파라미터 설정
@@ -56,6 +58,11 @@ if __name__ == '__main__':
 
     # 모델 경로 준비
     # 모델 포멧은 TensorFlow는 h5, PyTorch는 pickle
+    if args.pretrained_value_net :
+        value_network_name = args.pretrained_value_net
+    if args.pretrained_policy_net :    
+        policy_network_name = args.pretrained_policy_net
+
     value_network_path = os.path.join(settings.BASE_DIR, 'models', value_network_name)
     policy_network_path = os.path.join(settings.BASE_DIR, 'models', policy_network_name)
 
@@ -86,10 +93,16 @@ if __name__ == '__main__':
     list_min_trading_price = []
     list_max_trading_price = []
 
-    print("DEGUGGING..")
-    print(f"learning mode= {learning}, args.mode = {args.mode}")
-    print(f"Value_network and Policy_network will be saved in {value_network_path}, {args.policy_network_path}")
-    print(f"All logs will be saved in = {output_path}")
+    print('\n','-'*50 , "\tDEGUGGING..  in [main.py]\t", '-'*50 )
+    print(f"\targs.mode = {args.mode}  -> learning mode= {learning}")
+    if args.mode in ['train', 'update']:
+        print(f"\tValue_network and Policy_network will be trained and saved in folders:\n{value_network_path}, \n{policy_network_path}")
+    else:
+        if args.pretrained_value_net :
+            print(f"\t---Loading Pretrained model ({args.pretrained_value_net}) in (models) folder ")
+        if args.pretrained_policy_net :    
+            print(f"\t---Loading Pretrained model ({args.pretrained_policy_net}) in (models) folder ")
+    print(f"\tAll logs will be saved in [{output_path}]")
 
     for stock_code in args.stock_code:
         # 차트 데이터, 학습 데이터 준비

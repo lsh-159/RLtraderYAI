@@ -211,6 +211,8 @@ class ReinforcementLearner:
         self.visualizer.save(os.path.join(self.epoch_summary_dir, f'epoch_summary_{epoch_str}.png'))
 
     def run(self, learning=True):
+        print('\n','-'*50 , "\tDEGUGGING..  in [ReinforcementLearner.run()]\t", '-'*50 )
+
         info = (
             f'[{self.stock_code}] RL:{self.rl_method} NET:{self.net} '
             f'LR:{self.lr} DF:{self.discount_factor} '
@@ -268,8 +270,10 @@ class ReinforcementLearner:
                 # 가치, 정책 신경망 예측
                 pred_value = None
                 pred_policy = None
-                print(f"DEBUG in learners.py.run() // list(q_sample) = \n {list(q_sample)}")
-                sys.exit()
+
+                #list(q_sample) = [[0.10369999999999999, 0.0146, 0.1481, 0.0082417582417582, 0.0074480595844765, -0.004704037632301, 0.0011773940345369, -0.0568919753601655, 0.0052211604768002, -0.2764642223649974, -0.0432015802864268, -0.229900556747115, -0.0006072359013535, -0.243798740304086, 0.0045893092650917, -0.0054694574699677, 0.0165198523661878, -0.0014400310160526, -0.0025410959061998, -0.0067091703217158, 0.1539251261173555, -0.0193355930017469, 0.0153396446637075, 0.0053719774436205, -0.138094816650441, 0.0850876073545173, -0.0232880267722222, -0.001560203556064, -0.1063161931734371, -0.1114017949203691, -0.0441764881060978, -0.0562073713461198, 0.0, 0, 0]]
+                #print(f"DEBUG in learners.py.run() // list(q_sample) = \n {len(q_sample[0])}") 출력 : 35
+                #sys.exit()
                 if self.value_network is not None:
                     pred_value = self.value_network.predict(list(q_sample))
                 if self.policy_network is not None:

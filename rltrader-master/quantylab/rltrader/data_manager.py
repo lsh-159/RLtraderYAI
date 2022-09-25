@@ -2,8 +2,11 @@ import os
 import pandas as pd
 import numpy as np
 
-#from quantylab.rltrader import settings
-import settings
+from quantylab.rltrader import settings
+#import settings  #  data_manager.py 만 돌리고싶을때 
+#삼성전자 2018~2020  2020~2022
+#카카오  2018~2020  
+#현대자동차 2018~2020     
 
 
 COLUMNS_CHART_DATA = ['date', 'open', 'high', 'low', 'close', 'volume']
@@ -124,6 +127,23 @@ COLUMNS_TRAINING_DATA_V4 = [
     'msci_france_diffratio', 'msci_france_ma5_ratio', 'msci_france_ma20_ratio', 'msci_france_ma60_ratio', 'msci_france_ma120_ratio',
     'msci_germany_diffratio', 'msci_germany_ma5_ratio', 'msci_germany_ma20_ratio', 'msci_germany_ma60_ratio', 'msci_germany_ma120_ratio',
 ]
+#remove diff_ratio, ma5, ma10 for all features from COLUMNS_TRAINING_DATA_V3
+COLUMNS_CUSTOM = ['per', 'pbr', 'roe'] + [
+    'open_lastclose_ratio', 'high_close_ratio', 'low_close_ratio',
+    'close_lastclose_ratio', 'volume_lastvolume_ratio',
+    'close_ma20_ratio', 'volume_ma20_ratio',
+    'close_ma60_ratio', 'volume_ma60_ratio',
+    'close_ma120_ratio', 'volume_ma120_ratio',
+]+[
+    'market_kospi_ma20_ratio', 'market_kospi_ma60_ratio', 'market_kospi_ma120_ratio', 
+     'bond_k3y_ma20_ratio', 'bond_k3y_ma60_ratio', 'bond_k3y_ma120_ratio',
+]+[
+    'ind',  'ind_ma20', 'ind_ma60', 'ind_ma120',
+    'inst', 'inst_ma20', 'inst_ma60', 'inst_ma120',
+    'foreign',  'foreign_ma20', 'foreign_ma60', 'foreign_ma120',
+]
+COLUMNS_CUSTOM = list(map(
+    lambda x: x if x != 'close_lastclose_ratio' else 'diffratio', COLUMNS_CUSTOM))
 
 def preprocess(data, ver='v1'):
     windows = [5, 10, 20, 60, 120]
@@ -175,16 +195,18 @@ def preprocess(data, ver='v1'):
 
 
 def load_data(code, date_from, date_to, ver='v2'):
+
+    print('\n','-'*50 , "\tDEGUGGING..  in [data_manager.py]\t", '-'*50 )
+    print(f"\tDEBUG // Loading {ver} datasets in load_data()")
     if ver in ['v3', 'v4']:
         return load_data_v3_v4(code, date_from, date_to, ver)
-
-    print(f"DEBUG // Loading {ver} datasets in load_data()")
+    if ver in ['custom']:
+        return load_data_custom(code, date_from, date_to, ver)
 
     header = None if ver == 'v1' else 0
     df = pd.read_csv(
         os.path.join(settings.BASE_DIR, 'data', ver, f'{code}.csv'),
         thousands=',', header=header, converters={'date': lambda x: str(x)})
-
     if ver == 'v1':
         df.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
 
@@ -220,12 +242,14 @@ def load_data(code, date_from, date_to, ver='v2'):
 
 def load_data_v3_v4(code, date_from, date_to, ver):
 
-    print(f"DEBUG // Loading {ver} datasets in load_data_v3_v4()")
     columns = None
     if ver == 'v3':
         columns = COLUMNS_TRAINING_DATA_V3
     elif ver == 'v4':
         columns = COLUMNS_TRAINING_DATA_V4
+        
+    print(f"\tDEBUG // Loading {ver} datasets in load_data_v3_v4()")
+    print(f"\tDEBUG // COLUMNS Feature # : {len(columns)}")
 
     # 시장 데이터
     df_marketfeatures = pd.read_csv(
@@ -257,24 +281,6 @@ date	open	high	low	close	volume	per	pbr	roe	open_lastclose_ratio	high_close_rati
 20211230	78900	79500	78100	78300	14236700	10.37	1.46	14.81	0.001269036	0.01532567	-0.002554278	-0.006345178	-0.280785681	-0.016578749	-0.052498279	-0.009612952	-0.014277662	0.002817623	-0.045470082	0.065402758	-0.049241494	0.039173616	-0.126407884	0.166844845	-0.122886269	-0.10336186	-0.128263928	-0.08818603	-0.025604181	0.023709155	-0.210268672	0.096868482	0.062347527	0.046942104	0.011723158	0.010516353	-0.002966207	0.040313767	0.025278248	0.027736864	0.077358959	0.074475248	0.014208339	-0.022601413
     '''
 
-
-
-
-    '''
-    # TODO 
-    # # add new features
-    # df_additional_features = None
-    # for filename in os.listdir(os.path.join(settings.BASE_DIR, 'additional_features', ver)):
-    #     if filename.startswith(code):
-    #         df_stockfeatures = pd.read_csv(
-    #             os.path.join(settings.BASE_DIR, 'additional_features', ver, filename), 
-    #             thousands=',', header=0, converters={'date': lambda x: str(x)})
-    #         break 
-    '''
-    
-
-
-
     # 시장 데이터와 종목 데이터 합치기
     df = pd.merge(df_stockfeatures, df_marketfeatures, on='date', how='left', suffixes=('', '_dup'))
     df = df.drop(df.filter(regex='_dup$').columns.tolist(), axis=1)
@@ -305,12 +311,13 @@ date	open	high	low	close	volume	per	pbr	roe	open_lastclose_ratio	high_close_rati
     print("\nfilling [interpolate] 이후 결측치(NaN, None) 개수 : ",df_interpolate.isnull().sum().sum())
     
     df = df_interpolate
+
+
     '''
     df.fillna(ffill : 결측값을 앞의 값으로 채우기) 채우는 방법 종류 : https://rfriend.tistory.com/262
     interpolate 방식으로 바꾸는게 안전할 것 같기도 https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html
     Python pandas에서는 결측값을 'NaN' 으로 표기하며, 'None'도 결측값으로 인식
     '''
-
 
     # 데이터 조정
     df.loc[:, ['per', 'pbr', 'roe']] = df[['per', 'pbr', 'roe']].apply(lambda x: x / 100)
@@ -326,9 +333,68 @@ date	open	high	low	close	volume	per	pbr	roe	open_lastclose_ratio	high_close_rati
 #python main.py --mode train --ver v3 --name test1 --stock_code 005930 --rl_method a2c --net dnn 
 #--start_date 20180101 --end_date 20191231
 
+def load_data_custom(code, date_from, date_to, ver):
+
+    columns = COLUMNS_CUSTOM
+    print(f"\tDEBUG // Loading {ver} datasets in load_data_custom()")
+    print(f"\tDEBUG // COLUMNS Feature # : {len(columns)}")
+
+    ver = 'v3'
+    # 시장 데이터
+    df_marketfeatures = pd.read_csv(
+        os.path.join(settings.BASE_DIR, 'data', ver, 'marketfeatures.csv'), 
+        thousands=',', header=0, converters={'date': lambda x: str(x)})
+    # 종목 데이터
+    df_stockfeatures = None
+    for filename in os.listdir(os.path.join(settings.BASE_DIR, 'data', ver)):
+        if filename.startswith(code):
+            df_stockfeatures = pd.read_csv(
+                os.path.join(settings.BASE_DIR, 'data', ver, filename), 
+                thousands=',', header=0, converters={'date': lambda x: str(x)})
+            break
+    '''
+    # TODO 
+    # # add new market features or stock features csv and pd.merge below
+    # df_additional_features = None
+    # for filename in os.listdir(os.path.join(settings.BASE_DIR, 'additional_features', ver)):
+    #     if filename.startswith(code):
+    #         df_stockfeatures = pd.read_csv(
+    #             os.path.join(settings.BASE_DIR, 'additional_features', ver, filename), 
+    #             thousands=',', header=0, converters={'date': lambda x: str(x)})
+    #         break 
+    '''
+
+    # 시장 데이터와 종목 데이터 합치기
+    df = pd.merge(df_stockfeatures, df_marketfeatures, on='date', how='left', suffixes=('', '_dup'))
+    df = df.drop(df.filter(regex='_dup$').columns.tolist(), axis=1)
+    # 날짜 오름차순 정렬
+    df = df.sort_values(by='date').reset_index(drop=True)
+
+    print(f"\tDEBUG // df_market_features.shape : {df_marketfeatures.shape} + df_stockfeatures.shape : {df_stockfeatures.shape}\
+                     \n\t\t= df_merge.shape : {df.shape}")
+    # 기간 필터링
+    df['date'] = df['date'].str.replace('-', '')
+    df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
+    print(f"\tDEBUG // df_merge(data filtered from start_date to end_date).shape = {df.shape}")
+    print("\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum())
+    #df_fillna = df.fillna(method='ffill').reset_index(drop=True)   #ffill 방식
+    df_interpolate = df.interpolate() # interpolate 방식
+    print("\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df_interpolate.isnull().sum().sum(), "(filling NaN with [interpolate]) ")
+    
+    df = df_interpolate
+    # 데이터 조정
+    df.loc[:, ['per', 'pbr', 'roe']] = df[['per', 'pbr', 'roe']].apply(lambda x: x / 100)
+    # 차트 데이터 분리
+    chart_data = df[COLUMNS_CHART_DATA]
+    # 학습 데이터 분리
+    training_data = df[columns]
+
+    return chart_data, training_data
+
+
 if __name__ == '__main__':
     print("DEBUG //  here is data_manager.py.__main__  ")
-    chart_data, training_data = load_data_v3_v4( "005930", "20180101", "20191231", 'v3')
+    chart_data, training_data = load_data_custom( "005930", "20180101", "20191231", 'custom')
 
     print("-"*50,"\nDEBUG //  here is END of data_manager.py.__main__  ")
 
