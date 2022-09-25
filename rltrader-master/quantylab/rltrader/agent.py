@@ -40,8 +40,8 @@ class Agent:
         self.num_sell = 0  # 매도 횟수
         self.num_hold = 0  # 관망 횟수
 
-        # Agent 클래스의 상태
-        self.ratio_hold = 0  # 주식 보유 비율
+        # Agent 클래스의 상태  get_states() 로 받을 수 있음
+        self.ratio_hold = 0  # 주식 보유 비율   : 주식 가치 / PV(주식 가치 + 현금 보유)
         self.profitloss = 0  # 현재 손익
         self.avg_buy_price = 0  # 주당 매수 단가
 
@@ -70,6 +70,15 @@ class Agent:
         )
 
     def decide_action(self, pred_value, pred_policy, epsilon):
+        '''
+        input 예시  (Q_value, Policy, eps)
+            pred_value : np.array(124.155, 41.814, 14.112)
+            pred_policy : np.array(0.76, 0.18, 0.06)
+            epsilon : 0.4
+        output 예시 (Action, Confidence, Is_exploration)
+            return ( action = 0, confidence= 0.76, exploration = False)
+        '''
+
         confidence = 0.
 
         pred = pred_policy
@@ -106,6 +115,10 @@ class Agent:
         return action, confidence, exploration
 
     def validate_action(self, action):
+        '''
+        보유 현금으로 1주라도 살 수 있으면 True 없으면 False
+        '''
+
         if action == Agent.ACTION_BUY:
             # 적어도 1주를 살 수 있는지 확인
             if self.balance < self.environment.get_price() * (1 + self.TRADING_CHARGE):
@@ -117,6 +130,13 @@ class Agent:
         return True
 
     def decide_trading_unit(self, confidence):
+        '''
+        input 예시
+            confidence : 0.4
+        output 예시
+            return 3  (confidence에 따른 구매 주식 개수)
+        '''
+
         if np.isnan(confidence):
             return self.min_trading_price
         added_trading_price = max(min(
@@ -126,6 +146,15 @@ class Agent:
         return max(int(trading_price / self.environment.get_price()), 1)
 
     def act(self, action, confidence):
+        '''
+        input 예시
+            action=0, confidence=0.7
+        output
+            action과 confidence에 따라 거래한 후 보유 현금, 보유 주식수, 매수횟수 등 
+            class agent 상태, 속성들 수정 후 
+            reward로 쓸 self.profitloss 리턴
+
+        '''
         if not self.validate_action(action):
             action = Agent.ACTION_HOLD
 

@@ -70,6 +70,17 @@ class Network:
             return pred
 
     def train_on_batch(self, x, y):
+        '''
+        Q_value function을 학습시키는 함수인데
+        A2C에 따르면 critic 부분 학습이
+        x.shape = (bs, 1)  :    r + gamma* Q_w(s',a') 
+        y.shape = (bs, 1)  :    Q_w(s,a)  이어야 하는데
+        현재 코드는 
+        x.shape = (bs, inp_dim)  or (bs, num_steps, inp_dim)
+        y.shape = (bs, label)       입니다. 
+        SGD가 아닌 배치 전체로 GD 
+        '''
+
         loss = 0.
         with self.lock:
             self.model.train()

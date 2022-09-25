@@ -9,6 +9,8 @@ from quantylab.rltrader import utils
 from quantylab.rltrader import data_manager
 
 
+#python main.py --mode train --ver v3 --name test1 --stock_code 005930 --rl_method a2c --net dnn --start_date 20180101 --end_date 20191231
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test', 'update', 'predict'], default='train')
@@ -83,6 +85,11 @@ if __name__ == '__main__':
     list_training_data = []
     list_min_trading_price = []
     list_max_trading_price = []
+
+    print("DEGUGGING..")
+    print(f"learning mode= {learning}, args.mode = {args.mode}")
+    print(f"Value_network and Policy_network will be saved in {value_network_path}, {args.policy_network_path}")
+    print(f"All logs will be saved in = {output_path}")
 
     for stock_code in args.stock_code:
         # 차트 데이터, 학습 데이터 준비

@@ -2,8 +2,8 @@ class Environment:
     PRICE_IDX = 4  # 종가의 위치
 
     def __init__(self, chart_data=None):
-        self.chart_data = chart_data
-        self.observation = None
+        self.chart_data = chart_data            #class:  Pandas.DataFrame 
+        self.observation = None                 
         self.idx = -1
 
     def reset(self):

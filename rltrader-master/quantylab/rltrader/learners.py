@@ -6,6 +6,8 @@ import threading
 import time
 import json
 import numpy as np
+import sys
+
 from tqdm import tqdm
 from quantylab.rltrader.environment import Environment
 from quantylab.rltrader.agent import Agent
@@ -37,18 +39,18 @@ class ReinforcementLearner:
         assert num_steps > 0
         assert lr > 0
         # 강화학습 설정
-        self.rl_method = rl_method
+        self.rl_method = rl_method              #'''학습에 안쓰임 (가시화 용도)'''
         self.discount_factor = discount_factor
         self.num_epoches = num_epoches
         self.start_epsilon = start_epsilon
         # 환경 설정
-        self.stock_code = stock_code
-        self.chart_data = chart_data
+        self.stock_code = stock_code            #'''학습에 안쓰임 (가시화용도)'''
+        self.chart_data = chart_data            #'''주식 일봉 차트 데이터 (oclhv)'''
         self.environment = Environment(chart_data)
         # 에이전트 설정
         self.agent = Agent(self.environment, balance, min_trading_price, max_trading_price)
         # 학습 데이터
-        self.training_data = training_data
+        self.training_data = training_data      #'''chart_data를 전처리한 데이터 (feature = 400)'''
         self.sample = None
         self.training_data_idx = -1
         # 벡터 크기 = 학습 데이터 벡터 크기 + 에이전트 상태 크기
@@ -57,7 +59,7 @@ class ReinforcementLearner:
             self.num_features += self.training_data.shape[1]
         # 신경망 설정
         self.net = net
-        self.num_steps = num_steps
+        self.num_steps = num_steps              #''' 책 설명 : LSTM, CNN 신경망에서 사용하는 샘플 묶음의 크기'''
         self.lr = lr
         self.value_network = value_network
         self.policy_network = policy_network
@@ -155,7 +157,10 @@ class ReinforcementLearner:
         self.batch_size = 0
 
     def build_sample(self):
-        self.environment.observe()
+        '''
+        return [o,c,l,h,v,feature1,feature2,    ...    , agent_state1, agent_state2, ... , agent_stateN]
+        '''
+        self.environment.observe()               #''' self.observation = self.chart_data.iloc[self.idx]'''
         if len(self.training_data) > self.training_data_idx + 1:
             self.training_data_idx += 1
             self.sample = self.training_data.iloc[self.training_data_idx].tolist()
@@ -250,7 +255,8 @@ class ReinforcementLearner:
 
             for i in tqdm(range(len(self.training_data)), leave=False):
                 # 샘플 생성
-                next_sample = self.build_sample()
+                next_sample = self.build_sample()   
+                '''return [o,c,l,h,v,feature1,feature2,    ...    , agent_state1, agent_state2, ... , agent_stateN] '''
                 if next_sample is None:
                     break
 
@@ -262,6 +268,8 @@ class ReinforcementLearner:
                 # 가치, 정책 신경망 예측
                 pred_value = None
                 pred_policy = None
+                print(f"DEBUG in learners.py.run() // list(q_sample) = \n {list(q_sample)}")
+                sys.exit()
                 if self.value_network is not None:
                     pred_value = self.value_network.predict(list(q_sample))
                 if self.policy_network is not None:
@@ -343,6 +351,7 @@ class ReinforcementLearner:
         while True:
             # 샘플 생성
             next_sample = self.build_sample()
+            '''return [o,c,l,h,v,feature1,feature2,    ...    , agent_state1, agent_state2, ... , agent_stateN] '''
             if next_sample is None:
                 break
 
@@ -360,8 +369,8 @@ class ReinforcementLearner:
                 pred_policy = self.policy_network.predict(list(q_sample))
             
             # 신경망에 의한 행동 결정
-            action, confidence, _ = self.agent.decide_action(pred_value, pred_policy, 0)
-            result.append((self.environment.observation[0], int(action), float(confidence)))
+            action, confidence, _ = self.agent.decide_action(pred_value, pred_policy, 0)  #'''eps = 0'''
+            result.append((self.environment.observation[0], int(action), float(confidence)))  #'''date, action, confidence'''
 
         with open(os.path.join(self.output_path, f'pred_{self.stock_code}.json'), 'w') as f:
             print(json.dumps(result), file=f)

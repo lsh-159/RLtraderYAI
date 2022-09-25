@@ -2,7 +2,8 @@ import os
 import pandas as pd
 import numpy as np
 
-from quantylab.rltrader import settings
+#from quantylab.rltrader import settings
+import settings
 
 
 COLUMNS_CHART_DATA = ['date', 'open', 'high', 'low', 'close', 'volume']
@@ -177,6 +178,8 @@ def load_data(code, date_from, date_to, ver='v2'):
     if ver in ['v3', 'v4']:
         return load_data_v3_v4(code, date_from, date_to, ver)
 
+    print(f"DEBUG // Loading {ver} datasets in load_data()")
+
     header = None if ver == 'v1' else 0
     df = pd.read_csv(
         os.path.join(settings.BASE_DIR, 'data', ver, f'{code}.csv'),
@@ -216,6 +219,8 @@ def load_data(code, date_from, date_to, ver='v2'):
 
 
 def load_data_v3_v4(code, date_from, date_to, ver):
+
+    print(f"DEBUG // Loading {ver} datasets in load_data_v3_v4()")
     columns = None
     if ver == 'v3':
         columns = COLUMNS_TRAINING_DATA_V3
@@ -226,7 +231,15 @@ def load_data_v3_v4(code, date_from, date_to, ver):
     df_marketfeatures = pd.read_csv(
         os.path.join(settings.BASE_DIR, 'data', ver, 'marketfeatures.csv'), 
         thousands=',', header=0, converters={'date': lambda x: str(x)})
-    
+
+    '''  marketfeatures.csv
+date	market_kospi_ma5_ratio	market_kospi_ma20_ratio	market_kospi_ma60_ratio	market_kospi_ma120_ratio	bond_k3y_ma5_ratio	bond_k3y_ma20_ratio	bond_k3y_ma60_ratio	bond_k3y_ma120_ratio
+20180101	0.011111398	-0.000270659	-0.009637629	0.011877629	0.0004253	-0.001435025	-0.002387123	-0.006521886
+20180102	0.011962396	0.004589309	-0.005469457	0.016519852	0.00018492	-0.001440031	-0.002541096	-0.00670917
+...
+20211231	-0.00765908	-0.005824218	-0.001232365	-0.032829967	-0.000273598	0.000276029	0.002615838	-0.002569326
+    '''
+
     # 종목 데이터
     df_stockfeatures = None
     for filename in os.listdir(os.path.join(settings.BASE_DIR, 'data', ver)):
@@ -235,6 +248,32 @@ def load_data_v3_v4(code, date_from, date_to, ver):
                 os.path.join(settings.BASE_DIR, 'data', ver, filename), 
                 thousands=',', header=0, converters={'date': lambda x: str(x)})
             break
+    
+    ''' 005930 삼성전자.csv
+date	open	high	low	close	volume	per	pbr	roe	open_lastclose_ratio	high_close_ratio	low_close_ratio	diffratio	volume_lastvolume_ratio	close_ma5_ratio	volume_ma5_ratio	close_ma10_ratio	volume_ma10_ratio	close_ma20_ratio	volume_ma20_ratio	close_ma60_ratio	volume_ma60_ratio	close_ma120_ratio	volume_ma120_ratio	ind	ind_diff	ind_ma5	ind_ma10	ind_ma20	ind_ma60	ind_ma120	inst	inst_diff	inst_ma5	inst_ma10	inst_ma20	inst_ma60	inst_ma120	foreign	foreign_diff	foreign_ma5	foreign_ma10	foreign_ma20	foreign_ma60	foreign_ma120
+20180102	51380	51400	50780	51020	8474250	10.37	1.46	14.81	0.008241758	0.00744806	-0.004704038	0.001177394	-0.056891975	0.023511475	-0.235766412	0.015040586	-0.265695045	0.00522116	-0.276464222	-0.04320158	-0.229900557	-0.000607236	-0.24379874	0.153925126	0.254270685	-0.063636467	-0.056330855	-0.019335593	0.015339645	0.005371977	-0.138094817	-0.163224332	0.037910983	0.108695817	0.085087607	-0.023288027	-0.001560204	-0.106316193	-0.148278477	-0.016003263	-0.096875576	-0.111401795	-0.044176488	-0.056207371
+20180103	52540	52560	51420	51620	10013500	10.37	1.46	14.81	0.029792238	0.018209996	-0.003874467	0.011760094	0.181638493	0.027631789	-0.07720989	0.024938448	-0.093718889	0.016261763	-0.134493047	-0.032058454	-0.087239423	0.010479335	-0.106026831	-0.022554551	-0.176479677	-0.004994511	-0.064089524	-0.025702235	0.013545216	0.004866674	-0.237494383	-0.099399566	-0.045259544	0.07688029	0.069618092	-0.025208505	-0.003509053	0.228486543	0.334802736	0.005437931	-0.055945461	-0.089089143	-0.039823285	-0.053365995
+...
+20211230	78900	79500	78100	78300	14236700	10.37	1.46	14.81	0.001269036	0.01532567	-0.002554278	-0.006345178	-0.280785681	-0.016578749	-0.052498279	-0.009612952	-0.014277662	0.002817623	-0.045470082	0.065402758	-0.049241494	0.039173616	-0.126407884	0.166844845	-0.122886269	-0.10336186	-0.128263928	-0.08818603	-0.025604181	0.023709155	-0.210268672	0.096868482	0.062347527	0.046942104	0.011723158	0.010516353	-0.002966207	0.040313767	0.025278248	0.027736864	0.077358959	0.074475248	0.014208339	-0.022601413
+    '''
+
+
+
+
+    '''
+    # TODO 
+    # # add new features
+    # df_additional_features = None
+    # for filename in os.listdir(os.path.join(settings.BASE_DIR, 'additional_features', ver)):
+    #     if filename.startswith(code):
+    #         df_stockfeatures = pd.read_csv(
+    #             os.path.join(settings.BASE_DIR, 'additional_features', ver, filename), 
+    #             thousands=',', header=0, converters={'date': lambda x: str(x)})
+    #         break 
+    '''
+    
+
+
 
     # 시장 데이터와 종목 데이터 합치기
     df = pd.merge(df_stockfeatures, df_marketfeatures, on='date', how='left', suffixes=('', '_dup'))
@@ -243,10 +282,35 @@ def load_data_v3_v4(code, date_from, date_to, ver):
     # 날짜 오름차순 정렬
     df = df.sort_values(by='date').reset_index(drop=True)
 
+    print(f"DEBUG // df_market_features.shape = {df_marketfeatures.shape}, df_stockfeatures.shape = {df_stockfeatures.shape}")
+    print(f"DEBUG // df_merge.shape = {df.shape}")
+    
+
     # 기간 필터링
     df['date'] = df['date'].str.replace('-', '')
     df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
-    df = df.fillna(method='ffill').reset_index(drop=True)
+# 수정 전(-)
+    #df = df.fillna(method='ffill').reset_index(drop=True)          
+# 수정 후(+)
+    print(f"DEBUG // df_merge(data filtered).shape = {df.shape}")
+    print("-"*50,\
+                "\n결측치(NaN, None) 개수 : ",df.isnull().sum().sum(),"정상값 개수 : ", df.notnull().sum().sum(), \
+                "\n","-"*50,
+                "\n결측치 리스트 : \n",df.isnull().sum(), "\n","-"*50 )
+    print("\nfilling Nan value with [ffill] in Dataframe")
+    print("\nfilling Nan value with [interpolate] in Dataframe")
+    df_fillna = df.fillna(method='ffill').reset_index(drop=True) 
+    df_interpolate = df.interpolate() 
+
+    print("\nfilling [interpolate] 이후 결측치(NaN, None) 개수 : ",df_interpolate.isnull().sum().sum())
+    
+    df = df_interpolate
+    '''
+    df.fillna(ffill : 결측값을 앞의 값으로 채우기) 채우는 방법 종류 : https://rfriend.tistory.com/262
+    interpolate 방식으로 바꾸는게 안전할 것 같기도 https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.interpolate.html
+    Python pandas에서는 결측값을 'NaN' 으로 표기하며, 'None'도 결측값으로 인식
+    '''
+
 
     # 데이터 조정
     df.loc[:, ['per', 'pbr', 'roe']] = df[['per', 'pbr', 'roe']].apply(lambda x: x / 100)
@@ -258,3 +322,14 @@ def load_data_v3_v4(code, date_from, date_to, ver):
     training_data = df[columns]
 
     return chart_data, training_data
+
+#python main.py --mode train --ver v3 --name test1 --stock_code 005930 --rl_method a2c --net dnn 
+#--start_date 20180101 --end_date 20191231
+
+if __name__ == '__main__':
+    print("DEBUG //  here is data_manager.py.__main__  ")
+    chart_data, training_data = load_data_v3_v4( "005930", "20180101", "20191231", 'v3')
+
+    print("-"*50,"\nDEBUG //  here is END of data_manager.py.__main__  ")
+
+
