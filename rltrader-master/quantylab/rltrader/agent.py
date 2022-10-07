@@ -211,4 +211,5 @@ class Agent:
         # 포트폴리오 가치 갱신
         self.portfolio_value = self.balance + curr_price * self.num_stocks
         self.profitloss = self.portfolio_value / self.initial_balance - 1
-        return self.profitloss
+
+        return self.profitloss, self.portfolio_value

@@ -42,8 +42,11 @@ class Visualizer:
             self.axes[0].set_ylabel('Env.')  # y 축 레이블 표시
             x = np.arange(len(chart_data))
             # open, high, low, close 순서로된 2차원 배열
+            # column 은 idx o h l c  
             ohlc = np.hstack((
                 x.reshape(-1, 1), np.array(chart_data)[:, 1:-1]))
+
+            
             # 양봉은 빨간색으로 음봉은 파란색으로 표시
             candlestick_ohlc(self.axes[0], ohlc, colorup='r', colordown='b')
             # 거래량 가시화
@@ -51,14 +54,60 @@ class Visualizer:
             volume = np.array(chart_data)[:, -1].tolist()
             ax.bar(x, volume, color='b', alpha=0.3)
             # x축 설정
-            self.x = np.arange(len(chart_data['date']))
-            self.xticks = chart_data.index[[0, -1]]
-            self.xlabels = chart_data.iloc[[0, -1]]['date']
+            self.x = np.arange(len(chart_data['date']))  
+            self.xticks = chart_data.index[[0, -1]]     
+            self.xlabels = chart_data.iloc[[0, -1]]['date']    
+
+            self.xticks = self.xticks - self.xticks[0]
+            self.xlabels.index = self.xticks
+
+            # print(f"\nprint in prepare() : chart_data len={len(chart_data)}\n")
+            # chart_data len=244 일때 
+            # self.x = [0, 1, 2, ..., 243] 
+            
+            # self.xticks = Int64Index([0, 243], dtype='int64')  : 20180101~20181231
+            # self.xlabels=
+            #   0      20180102  
+            #  243    20181228
+            
+            # self.xticks = Int64Index([738, 985], dtype='int64') : 20210101~20211231
+            # self.xlabels =
+            # 738    20210104
+            # 985    20211230
+            # Name: date, dtype: object
+            # , <class 'pandas.core.series.Series'>  : series.index =['2016-02-19', '2016-02-18','2016-02-17','2016-02-16','2016-02-15'] 
+            # 이런식으로되어있어서
+            # for date in kakao2.index:
+            #     print(date)
+            # for ending_price in kakao2.values:
+            #     print(ending_price)
+            # 이런식으로 디버깅 가능
             
     def plot(self, epoch_str=None, num_epoches=None, epsilon=None,
             action_list=None, actions=None, num_stocks=None,
             outvals_value=[], outvals_policy=[], exps=None, 
             initial_balance=None, pvs=None):
+        
+        #action_list    [0,1,2]  <class list>
+        #actions        [0,2,1,1,0,2,0,1, ... ]                                         <class list>    len = len(chart_data)
+        #outvals_value  [[0.149, 0.0112, -0.003] , [0.231, 0.0049, 0.121] , ...     ]   <class list>    len = len(chart_data)
+        #outvals_policy [np.array(0.53, 0.51, 0.49)  , np.array(0.56,0.48,0.46),  ...]  <class list>    len = len(chart_data)
+        #pvs            [99999192.0625, 99998519.4811, 10001231.5519, ... ]             <class list>  len = len(chart_data) 
+        #exps  []  empty list  (test mode)
+
+        '''
+        print(f"\nDEBUG in plot \n \
+                    act_list: {len(action_list)}, {type(action_list)},\n \
+                    actions: {actions[0]},{type(actions[0])},\n  \
+                    exps: {exps}, {type(exps)}\n \
+                    outvals_policy: {outvals_policy[0]},{type(outvals_policy[0])}\n \
+                    outvals_value: {len(outvals_value)},{type(outvals_value)}\n\
+                    initial_balance: {initial_balance}, {type(initial_balance)} \n \
+                    pvs : {pvs[0]}, {type(pvs[0])}    \n"
+                    )
+        '''
+
+
         with lock:
             actions = np.array(actions)  # 에이전트의 행동 배열
             # 가치 신경망의 출력 배열
@@ -120,12 +169,13 @@ class Visualizer:
                 where=pvs < pvs_base, facecolor='b', alpha=0.1)
             self.axes[4].plot(self.x, pvs, '-k')
             self.axes[4].xaxis.set_ticks(self.xticks)
-            self.axes[4].xaxis.set_ticklabels(self.xlabels)
-            
+            self.axes[4].xaxis.set_ticklabels(self.xlabels, fontsize = 10 )
+
+
             # 에포크 및 탐험 비율
             self.fig.suptitle(f'{self.title}\nEPOCH:{epoch_str}/{num_epoches} EPSILON:{epsilon:.2f}')
             # 캔버스 레이아웃 조정
-            self.fig.tight_layout()
+            self.fig.tight_layout()  # figure의 모서리와 서브플롯의 모서리 사이의 여백 (패딩)을 설정한다.
             self.fig.subplots_adjust(top=0.85)
 
     def clear(self, xlim):

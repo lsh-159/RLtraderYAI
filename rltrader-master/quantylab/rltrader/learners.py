@@ -172,6 +172,7 @@ class ReinforcementLearner:
     def get_batch(self):
         pass
 
+
     def fit(self):
         # 배치 학습 데이터 생성
         x, y_value, y_policy = self.get_batch()
@@ -200,7 +201,7 @@ class ReinforcementLearner:
         self.visualizer.plot(
             epoch_str=epoch_str, num_epoches=num_epoches, 
             epsilon=epsilon, action_list=Agent.ACTIONS, 
-            actions=self.memory_action, 
+            actions=self.memory_action,         # class list : []
             num_stocks=self.memory_num_stocks, 
             outvals_value=self.memory_value, 
             outvals_policy=self.memory_policy,
@@ -211,7 +212,7 @@ class ReinforcementLearner:
         self.visualizer.save(os.path.join(self.epoch_summary_dir, f'epoch_summary_{epoch_str}.png'))
 
     def run(self, learning=True):
-        print('\n','-'*50 , "\tDEGUGGING..  in [ReinforcementLearner.run()]\t", '-'*50 )
+        print('\n','-'*50 , "\tDEBUGGING..  in [ReinforcementLearner.run()]\t", '-'*50 )
 
         info = (
             f'[{self.stock_code}] RL:{self.rl_method} NET:{self.net} '
@@ -238,6 +239,12 @@ class ReinforcementLearner:
         # 학습에 대한 정보 초기화
         max_portfolio_value = 0
         epoch_win_cnt = 0
+
+
+        prev_PV = self.agent.balance
+        print(f"DEBUG in learns.py run()   prev_PV initializaed={prev_PV}, self.agent.balance ={self.agent.balance} ")
+
+
 
         # 에포크 반복
         for epoch in tqdm(range(self.num_epoches)):
@@ -284,7 +291,11 @@ class ReinforcementLearner:
                     self.agent.decide_action(pred_value, pred_policy, epsilon)
 
                 # 결정한 행동을 수행하고 보상 획득
-                reward = self.agent.act(action, confidence)
+                # 수정
+                reward, curr_PV = self.agent.act(action, confidence)
+                reward = utils.reward_shaping(reward, prev_PV, curr_PV)
+                prev_PV = curr_PV 
+
 
                 # 행동 및 행동에 대한 결과를 기억
                 self.memory_sample.append(list(q_sample))
@@ -298,7 +309,7 @@ class ReinforcementLearner:
                 self.memory_num_stocks.append(self.agent.num_stocks)
                 if exploration:
                     self.memory_exp_idx.append(self.training_data_idx)
-
+                
                 # 반복에 대한 정보 갱신
                 self.batch_size += 1
                 self.itr_cnt += 1

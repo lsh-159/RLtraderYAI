@@ -9,28 +9,36 @@ from quantylab.rltrader import utils
 from quantylab.rltrader import data_manager
 
 
-#python main.py --mode test --ver custom --name test2 --stock_code 005930 --rl_method a2c --net dnn --start_date 20180101 --end_date 20191231 --pretrained_value_net test1_a2c_dnn_value.mdl --pretrained_policy_net test1_a2c_dnn_policy.mdl
+#python main.py --mode test --ver custom --name test2 --stock_code 005930 --rl_method a2c --net dnn 
+#--start_date 20180101 --end_date 20191231 
+#--pretrained_value_net test1_a2c_dnn_value.mdl --pretrained_policy_net test1_a2c_dnn_policy.mdl
+#--save_folder test2
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test', 'update', 'predict'], default='train')
-    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom'], default='v2')
-    parser.add_argument('--name', default=utils.get_time_str())
-    parser.add_argument('--stock_code', nargs='+')
+    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom'], default='v2', help='What version of Dataset will be used' )
+    parser.add_argument('--name', default='--name')
+    parser.add_argument('--stock_code', nargs='+', help='--stock_code 1234 2345 3456 4567')
     parser.add_argument('--rl_method', choices=['dqn', 'pg', 'ac', 'a2c', 'a3c', 'monkey'])
     parser.add_argument('--net', choices=['dnn', 'lstm', 'cnn', 'monkey'], default='dnn')
-    parser.add_argument('--backend', choices=['pytorch', 'tensorflow', 'plaidml'], default='pytorch')
+
     parser.add_argument('--start_date', default='20200101')
     parser.add_argument('--end_date', default='20201231')
+
+    parser.add_argument('--pretrained_value_net', type=str, default='' , help='PATH of pretrained model. must be ended with ".mdl", ')
+    parser.add_argument('--pretrained_policy_net', type=str, default='', help='If given, load ./models/PATH.mdl. If empty, train new model')
+    parser.add_argument('--save_folder', type=str, default = 'output', help='all logs will be saved into this PATH')
+
+    parser.add_argument('--backend', choices=['pytorch', 'tensorflow', 'plaidml'], default='pytorch')    
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--discount_factor', type=float, default=0.7)
     parser.add_argument('--balance', type=int, default=100000000)
-    parser.add_argument('--pretrained_value_net', type=str, default='')
-    parser.add_argument('--pretrained_policy_net', type=str, default='')
     args = parser.parse_args()
 
     # 학습기 파라미터 설정
-    output_name = f'{args.mode}_{args.name}_{args.rl_method}_{args.net}'
+    output_name = f'{args.mode}_{args.name}_{args.rl_method}_{args.net}_{args.stock_code}_{utils.get_time_str()}'
     learning = args.mode in ['train', 'update']
     reuse_models = args.mode in ['test', 'update', 'predict']
     value_network_name = f'{args.name}_{args.rl_method}_{args.net}_value.mdl'
@@ -47,7 +55,7 @@ if __name__ == '__main__':
         os.environ['KERAS_BACKEND'] = 'plaidml.keras.backend'
 
     # 출력 경로 생성
-    output_path = os.path.join(settings.BASE_DIR, 'output', output_name)
+    output_path = os.path.join(settings.BASE_DIR, args.save_folder, output_name)
     if not os.path.isdir(output_path):
         os.makedirs(output_path)
 
@@ -93,16 +101,20 @@ if __name__ == '__main__':
     list_min_trading_price = []
     list_max_trading_price = []
 
-    print('\n','-'*50 , "\tDEGUGGING..  in [main.py]\t", '-'*50 )
+
+    #################################################DEBUGGING AREA#################################################
+    print('\n','-'*50 , "\tDEBUGGING..  in [main.py]\t", '-'*50 )
     print(f"\targs.mode = {args.mode}  -> learning mode= {learning}")
     if args.mode in ['train', 'update']:
         print(f"\tValue_network and Policy_network will be trained and saved in folders:\n{value_network_path}, \n{policy_network_path}")
-    else:
-        if args.pretrained_value_net :
-            print(f"\t---Loading Pretrained model ({args.pretrained_value_net}) in (models) folder ")
-        if args.pretrained_policy_net :    
-            print(f"\t---Loading Pretrained model ({args.pretrained_policy_net}) in (models) folder ")
+    if args.pretrained_value_net :
+        print(f"\t---Loading Pretrained model ({args.pretrained_value_net}) in ./models ")
+    if args.pretrained_policy_net :    
+        print(f"\t---Loading Pretrained model ({args.pretrained_policy_net}) in ./models ")
+    
+
     print(f"\tAll logs will be saved in [{output_path}]")
+    #################################################DEBUGGING AREA#################################################
 
     for stock_code in args.stock_code:
         # 차트 데이터, 학습 데이터 준비

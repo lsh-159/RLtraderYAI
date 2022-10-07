@@ -43,6 +43,7 @@ COLUMNS_TRAINING_DATA_V3 = COLUMNS_TRAINING_DATA_V2 + [
     'foreign', 'foreign_diff', 'foreign_ma5', 'foreign_ma10', 'foreign_ma20', 
     'foreign_ma60', 'foreign_ma120',
 ]
+
 COLUMNS_TRAINING_DATA_V3 = list(map(
     lambda x: x if x != 'close_lastclose_ratio' else 'diffratio', COLUMNS_TRAINING_DATA_V3))
 
@@ -196,7 +197,7 @@ def preprocess(data, ver='v1'):
 
 def load_data(code, date_from, date_to, ver='v2'):
 
-    print('\n','-'*50 , "\tDEGUGGING..  in [data_manager.py]\t", '-'*50 )
+    print('\n','-'*50 , "\tDEBUGGING..  in [data_manager.py]\t", '-'*50 )
     print(f"\tDEBUG // Loading {ver} datasets in load_data()")
     if ver in ['v3', 'v4']:
         return load_data_v3_v4(code, date_from, date_to, ver)
@@ -373,7 +374,7 @@ def load_data_custom(code, date_from, date_to, ver):
     df['date'] = df['date'].str.replace('-', '')
     df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
     print(f"\tDEBUG // df_merge(data filtered from start_date to end_date).shape = {df.shape}")
-    print("\t\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum())
+    print("\t\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum(), "(filling 안함)")  
     #df_fillna = df.fillna(method='ffill').reset_index(drop=True)   #ffill 방식
     df_interpolate = df.interpolate() # interpolate 방식
     print("\t\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df_interpolate.isnull().sum().sum(), "(filling NaN with [interpolate]) ")
