@@ -8,23 +8,24 @@ from quantylab.rltrader import settings
 from quantylab.rltrader import utils
 from quantylab.rltrader import data_manager
 
+'''
+python main.py --mode test --ver etf --name test_221022 --stock_code DJI --rl_method a2c --net lstm 
+--start_date 20190101 --end_date 20221231 
+--pretrained_value_net train_221022_a2c_lstm_value.mdl --pretrained_policy_net train_221022_a2c_lstm_policy.mdl
+--save_folder test2
+'''
 
-#python main.py --mode test --ver custom --name test2 --stock_code 005930 --rl_method a2c --net dnn 
-#--start_date 20180101 --end_date 20191231 
-#--pretrained_value_net test1_a2c_dnn_value.mdl --pretrained_policy_net test1_a2c_dnn_policy.mdl
-#--save_folder test2
-
-
-# python main.py --mode test --ver custom --name 221007 --stock_code 035720 --rl_method a2c --net dnn --start_date 20180101 --end_date 20201231 --pretrained_value_net test1_a2c_dnn_value.mdl --pretrained_policy_net test1_a2c_dnn_policy.mdl --save_folder experiment_221007
-
-# python main.py --mode train --ver custom --name exp_221009 --stock_code 035720 --rl_method a2c --net lstm --start_date 20180101 --end_date 20201231 --save_folder experiment_221007
+'''
+python main.py --mode train --ver etf --name train_221022 --stock_code DJI --rl_method a2c --net lstm 
+--start_date 19880115 --end_date 20181231 --save_folder output/experiment221022
+'''
 
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test', 'update', 'predict'], default='train')
-    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom'], default='v2', help='What version of Dataset will be used' )
+    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom', 'etf'], default='etf', help='What version of Dataset will be used' )
     parser.add_argument('--name', default='--name')
     parser.add_argument('--stock_code', nargs='+', help='--stock_code 1234 2345 3456 4567')
     parser.add_argument('--rl_method', choices=['dqn', 'pg', 'ac', 'a2c', 'a3c', 'monkey'])

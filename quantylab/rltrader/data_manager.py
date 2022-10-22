@@ -143,8 +143,19 @@ COLUMNS_CUSTOM = ['per', 'pbr', 'roe'] + [
     'inst', 'inst_ma20', 'inst_ma60', 'inst_ma120',
     'foreign',  'foreign_ma20', 'foreign_ma60', 'foreign_ma120',
 ]
+
 COLUMNS_CUSTOM = list(map(
     lambda x: x if x != 'close_lastclose_ratio' else 'diffratio', COLUMNS_CUSTOM))
+
+COLUMNS_ETF = ['perb', 'bw', 'MACD_ratio', 'RSI','slow_k','slow_d' ] +[
+    'open_lastclose_ratio', 'high_close_ratio', 'low_close_ratio',
+    'close_lastclose_ratio', 'volume_lastvolume_ratio',
+    'close_ma5_ratio', 'volume_ma5_ratio',
+    'close_ma10_ratio', 'volume_ma10_ratio',
+    'close_ma20_ratio', 'volume_ma20_ratio',
+    'close_ma60_ratio', 'volume_ma60_ratio',
+    'close_ma120_ratio', 'volume_ma120_ratio',
+] 
 
 def preprocess(data, ver='v1'):
     windows = [5, 10, 20, 60, 120]
@@ -197,55 +208,95 @@ def preprocess(data, ver='v1'):
 
     return data
 
+def preprocess_etf(data):
+    '''
+    bband, macd, rsi, stochastic 추가.  macd는 MACD_ratio 만 사용
+    (나머지는 백분율 데이터라 변환 불필요)
+    '''
+    def bband(df, window = 20, k = 2):
+        df['mbb'] = df['Close'].rolling(window).mean()
+        df['stddev'] = df['Close'].rolling(window).std()
+        df['ubb'] = df['mbb'] + 2*df['stddev']
+        df['lbb'] = df['mbb'] - 2*df['stddev'] 
+        df['perb'] = (df['Close']-df['lbb']) / (df['ubb']-df['lbb'])
+        df['bw'] = (df['ubb']-df['lbb']) / (df['mbb'])
 
-def preprocess(data, ver='v1'):
+        return df
+
+    def macd(df):
+        macd_short, macd_long, macd_signal = 12,26,9
+        df['MACD_short'] = df['Close'].rolling(macd_short).mean()
+        df['MACD_long'] = df['Close'].rolling(macd_long).mean()
+        df['MACD'] = df.apply(lambda x : (x['MACD_short']-x['MACD_long']), axis=1)
+        df['MACD_signal'] = df['MACD'].rolling(macd_signal).mean()
+        df['MACD_ratio'] = (df['MACD']/(df['MACD_signal']+0.01))
+
+        return df
+
+    def rsi(df, window = 14):
+        delta =df['Close'].diff(1)  #df['c_diff'] = df['Close']- df['Close'].shift(1)
+        delta = delta.dropna() #or delta[1:]
+
+        rsi_U = delta.copy()
+        rsi_D = delta.copy()
+        rsi_U[rsi_U<0] =0   #U = np.where(df.diff(1)['Close'] >0, df.diff(1)['Close'],0)
+        rsi_D[rsi_D>0] =0   #D = np.where(df.diff(1)['Close'] <0, df.diff(1)['Close']*(-1),0)
+        df['U'] = rsi_U
+        df['D'] = rsi_D
+
+        
+        AU = df['U'].rolling(window).mean()
+        AD = df['D'].rolling(window).mean()
+        RSI = (AU / (AU+AD))   # *100 하면 백분율
+        df['RSI'] = RSI
+
+        return df
+    
+    def stochas(df, sto_n = 14, sto_m=1, sto_t=3):
+        #슬로우 스토캐스틱만 사용
+        ndays_high = df['High'].rolling(window =sto_n, min_periods=1).max()
+        ndays_low = df['Low'].rolling(window=sto_n,min_periods=1).min()
+
+        ndays_high.fillna(0)
+        ndays_low.fillna(0)
+
+        df['Stochastic'] = ((df['Close']-ndays_low)/(ndays_high-ndays_low))*100
+        df['slow_k'] = df['Stochastic'].rolling(sto_m).mean()
+        df['slow_d'] = df['slow_k'].rolling(sto_t).mean()
+
+        return df
+
+
     windows = [5, 10, 20, 60, 120]
-    for window in windows:
-        data[f'close_ma{window}'] = data['close'].rolling(window).mean()
-        data[f'volume_ma{window}'] = data['volume'].rolling(window).mean()
+    #close_ma5,10,20,60,120 volumn_ma5,10,20,60,120, open_lastclose, high_close, 
+    #low_close, close_lastclose, volumn_lastvolume 추가
+    for window in windows: 
+        data[f'close_ma{window}'] = data['Close'].rolling(window).mean()
+        data[f'volume_ma{window}'] = data['Volume'].rolling(window).mean()
         data[f'close_ma{window}_ratio'] = \
-            (data['close'] - data[f'close_ma{window}']) / data[f'close_ma{window}']
+            (data['Close'] - data[f'close_ma{window}']) / data[f'close_ma{window}']
         data[f'volume_ma{window}_ratio'] = \
-            (data['volume'] - data[f'volume_ma{window}']) / data[f'volume_ma{window}']
+            (data['Volume'] - data[f'volume_ma{window}']) / data[f'volume_ma{window}']
         
     data['open_lastclose_ratio'] = np.zeros(len(data))
     data.loc[1:, 'open_lastclose_ratio'] = \
-        (data['open'][1:].values - data['close'][:-1].values) / data['close'][:-1].values
-    data['high_close_ratio'] = (data['high'].values - data['close'].values) / data['close'].values
-    data['low_close_ratio'] = (data['low'].values - data['close'].values) / data['close'].values
+        (data['Open'][1:].values - data['Close'][:-1].values) / data['Close'][:-1].values
+    data['high_close_ratio'] = (data['High'].values - data['Close'].values) / data['Close'].values
+    data['low_close_ratio'] = (data['Low'].values - data['Close'].values) / data['Close'].values
     data['close_lastclose_ratio'] = np.zeros(len(data))
     data.loc[1:, 'close_lastclose_ratio'] = \
-        (data['close'][1:].values - data['close'][:-1].values) / data['close'][:-1].values
+        (data['Close'][1:].values - data['Close'][:-1].values) / data['Close'][:-1].values
     data['volume_lastvolume_ratio'] = np.zeros(len(data))
     data.loc[1:, 'volume_lastvolume_ratio'] = (
-        (data['volume'][1:].values - data['volume'][:-1].values) 
-        / data['volume'][:-1].replace(to_replace=0, method='ffill')\
-            .replace(to_replace=0, method='bfill').values
-    )
+        (data['Volume'][1:].values - data['Volume'][:-1].values) 
+        / data['Volume'][:-1].replace(to_replace=0, method='ffill')\
+            .replace(to_replace=0, method='bfill').values)
     
-
-    # 기관순매수 inst
-    # 외국인 순매수 frgn
-    if ver == 'v1.1':
-        for window in windows:
-            data[f'inst_ma{window}'] = data['close'].rolling(window).mean()
-            data[f'frgn_ma{window}'] = data['volume'].rolling(window).mean()
-            data[f'inst_ma{window}_ratio'] = \
-                (data['close'] - data[f'inst_ma{window}']) / data[f'inst_ma{window}']
-            data[f'frgn_ma{window}_ratio'] = \
-                (data['volume'] - data[f'frgn_ma{window}']) / data[f'frgn_ma{window}']
-        data['inst_lastinst_ratio'] = np.zeros(len(data))
-        data.loc[1:, 'inst_lastinst_ratio'] = (
-            (data['inst'][1:].values - data['inst'][:-1].values)
-            / data['inst'][:-1].replace(to_replace=0, method='ffill')\
-                .replace(to_replace=0, method='bfill').values
-        )
-        data['frgn_lastfrgn_ratio'] = np.zeros(len(data))
-        data.loc[1:, 'frgn_lastfrgn_ratio'] = (
-            (data['frgn'][1:].values - data['frgn'][:-1].values)
-            / data['frgn'][:-1].replace(to_replace=0, method='ffill')\
-                .replace(to_replace=0, method='bfill').values
-        )
+    data = bband(data)
+    data = macd(data)
+    data = rsi(data)
+    data = stochas(data)
+    
 
     return data
 
@@ -310,6 +361,8 @@ def load_data(code, date_from, date_to, ver='v2'):
         return load_data_v3_v4(code, date_from, date_to, ver)
     if ver in ['custom']:
         return load_data_custom(code, date_from, date_to, ver)
+    if ver in ['etf']:
+        return load_data_etf(code, date_from, date_to, ver)
 
     header = None if ver == 'v1' else 0
     df = pd.read_csv(
@@ -492,6 +545,68 @@ def load_data_custom(code, date_from, date_to, ver):
     print(training_data.head(5))
 
     return chart_data, training_data
+
+def load_data_etf(code, date_from, date_to, ver):
+
+    columns_chart_data = COLUMNS_CHART_DATA #['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+    columns_training_data = COLUMNS_ETF
+    print(f"\tDEBUG // Loading {ver} datasets in load_data_etf()")
+    print(f"\tDEBUG // train_data COLUMNS # : {len(columns_training_data)}")
+
+    ver = 'etf'
+
+    # 종목 데이터
+    df_stockfeatures = None
+    for filename in os.listdir(os.path.join(settings.BASE_DIR, 'data', ver)):
+        if filename.startswith(code):
+            df_stockfeatures = pd.read_csv(
+                os.path.join(settings.BASE_DIR, 'data', ver, filename), 
+                thousands=',', header=0, converters={'Date': lambda x: str(x)})
+            break
+
+    df = df_stockfeatures
+    df['date']= df['Date']
+    df['open'] = df['Open']
+    df['close']= df['Close']
+    df['high'] = df['High']
+    df['low'] = df['Low']
+    df['volume']= df['Volume']
+
+    # 아직 시장 데이터(환율) 준비 안됬으므로 pd.merge 안함 
+
+    df = preprocess_etf(df)
+    df = df.sort_values(by='date').reset_index(drop=True)       # 날짜 오름차순 정렬
+
+    
+    # 기간 필터링
+    df['date'] = df['date'].str.replace('-', '')
+    df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
+
+    print("\t\tETF 데이터의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum(), "(filling 안함)")  
+    df_interpolate = df.fillna(method='ffill').reset_index(drop=True)  
+    df_interpolate = df.fillna(method='bfill').reset_index(drop=True) # interpolate는 앞에 값이 없으면 안채워짐
+    print("\t\t결측치 제거 후 총 개수 : ",df_interpolate.isnull().sum().sum(), "(filling NaN with [ffill, bfill]) ")
+    
+    df = df_interpolate
+    
+
+
+    # 차트 데이터 분리
+    chart_data = df[columns_chart_data]
+    # 학습 데이터 분리
+    training_data = df[columns_training_data]
+
+    print(f"\tDEBUG // Final dataset :  ")
+    print(f"\n\t\tchart_data.shape {chart_data.shape}, training_data.shape= {training_data.shape}")
+    print(f"\n\tSample of chart_data")
+    print(chart_data.head(15))
+    print(f"\n\tSample of training_data")
+    print(training_data.head(15))
+
+    return chart_data, training_data
+
+
+
 
 
 if __name__ == '__main__':
