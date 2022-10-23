@@ -15,9 +15,9 @@ python main.py --mode test --ver etf --name test_221022 --stock_code DJI --rl_me
 --save_folder test2
 '''
 
-'''
-python main.py --mode train --ver etf --name train_221022 --stock_code DJI --rl_method a2c --net lstm 
---start_date 19880115 --end_date 20181231 --save_folder output/experiment221022
+'''  (괄호 안은 생략 가능)
+python main.py (--mode train) (--ver etf) --name train_221023 --stock_code DJI --net lstm (--rl_method a2c) 
+--start_date 19880115 --end_date 20181231 (--save_folder output/experiment221023)
 '''
 
 
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom', 'etf'], default='etf', help='What version of Dataset will be used' )
     parser.add_argument('--name', default='--name')
     parser.add_argument('--stock_code', nargs='+', help='--stock_code 1234 2345 3456 4567')
-    parser.add_argument('--rl_method', choices=['dqn', 'pg', 'ac', 'a2c', 'a3c', 'monkey'])
+    parser.add_argument('--rl_method', choices=['dqn', 'pg', 'ac', 'a2c', 'a3c', 'monkey'], default = 'a2c')
     parser.add_argument('--net', choices=['dnn', 'lstm', 'cnn', 'monkey'], default='dnn')
 
     parser.add_argument('--start_date', default='20200101')
@@ -42,6 +42,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--discount_factor', type=float, default=0.7)
     parser.add_argument('--balance', type=int, default=100000000)
+    parser.add_argument('--num_steps', type=int, default=10)
     args = parser.parse_args()
 
     # 학습기 파라미터 설정
@@ -54,6 +55,10 @@ if __name__ == '__main__':
     num_epoches = 1000 if args.mode in ['train', 'update'] else 1
     num_steps = 5 if args.net in ['lstm', 'cnn'] else 1
 
+    if args.num_steps :
+        if args.net in ['lstm','cnn']:
+            num_steps = args.num_steps
+            print(f'DEBUG :  Your {args.net} uses args.num_steps = {args.num_steps} , if undesired, please modify main.py')
     # Backend 설정
     os.environ['RLTRADER_BACKEND'] = args.backend
     if args.backend == 'tensorflow':

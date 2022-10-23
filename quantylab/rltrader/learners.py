@@ -216,7 +216,7 @@ class ReinforcementLearner:
 
         info = (
             f'[{self.stock_code}] RL:{self.rl_method} NET:{self.net} '
-            f'LR:{self.lr} DF:{self.discount_factor} '
+            f'LR:{self.lr} DF:{self.discount_factor} NUM_steps:{self.num_steps}days'
         )
         with self.lock:
             logger.debug(info)
@@ -242,7 +242,10 @@ class ReinforcementLearner:
 
 
         prev_PV = self.agent.balance
+
         print(f"DEBUG in learns.py run()   prev_PV initializaed={prev_PV}, self.agent.balance ={self.agent.balance} ")
+        print(f"                           your network num_steps={self.num_steps}days,  e-greedy epsilon={self.start_epsilon} ")
+        print(f"Good Luck!")
 
 
 
@@ -293,7 +296,7 @@ class ReinforcementLearner:
                 # 결정한 행동을 수행하고 보상 획득
                 # 수정
                 reward, curr_PV = self.agent.act(action, confidence)
-                reward = utils.reward_shaping(reward, prev_PV, curr_PV)
+                reward = utils.reward_shaping(reward, prev_PV, curr_PV)  #현재 그냥 quantylab과 똑같음. utils.reward_shaping에서 아무것도 안함
                 prev_PV = curr_PV 
 
 

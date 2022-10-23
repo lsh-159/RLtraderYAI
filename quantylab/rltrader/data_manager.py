@@ -213,13 +213,17 @@ def preprocess_etf(data):
     bband, macd, rsi, stochastic 추가.  macd는 MACD_ratio 만 사용
     (나머지는 백분율 데이터라 변환 불필요)
     '''
+    # 분모 0 인경우 안만들기 위해서
+    DIV0 = 0.01
+
+
     def bband(df, window = 20, k = 2):
         df['mbb'] = df['Close'].rolling(window).mean()
         df['stddev'] = df['Close'].rolling(window).std()
         df['ubb'] = df['mbb'] + 2*df['stddev']
         df['lbb'] = df['mbb'] - 2*df['stddev'] 
-        df['perb'] = (df['Close']-df['lbb']) / (df['ubb']-df['lbb'])
-        df['bw'] = (df['ubb']-df['lbb']) / (df['mbb'])
+        df['perb'] = (df['Close']-df['lbb']) / (df['ubb']-df['lbb'] + DIV0)
+        df['bw'] = (df['ubb']-df['lbb']) / (df['mbb'] + DIV0)
 
         return df
 
@@ -229,7 +233,7 @@ def preprocess_etf(data):
         df['MACD_long'] = df['Close'].rolling(macd_long).mean()
         df['MACD'] = df.apply(lambda x : (x['MACD_short']-x['MACD_long']), axis=1)
         df['MACD_signal'] = df['MACD'].rolling(macd_signal).mean()
-        df['MACD_ratio'] = (df['MACD']/(df['MACD_signal']+0.01))
+        df['MACD_ratio'] = (df['MACD']/(df['MACD_signal']+ DIV0))
 
         return df
 
@@ -260,7 +264,7 @@ def preprocess_etf(data):
         ndays_high.fillna(0)
         ndays_low.fillna(0)
 
-        df['Stochastic'] = ((df['Close']-ndays_low)/(ndays_high-ndays_low))*100
+        df['Stochastic'] = ((df['Close']-ndays_low)/(ndays_high-ndays_low+ DIV0))*100
         df['slow_k'] = df['Stochastic'].rolling(sto_m).mean()
         df['slow_d'] = df['slow_k'].rolling(sto_t).mean()
 
@@ -274,13 +278,13 @@ def preprocess_etf(data):
         data[f'close_ma{window}'] = data['Close'].rolling(window).mean()
         data[f'volume_ma{window}'] = data['Volume'].rolling(window).mean()
         data[f'close_ma{window}_ratio'] = \
-            (data['Close'] - data[f'close_ma{window}']) / data[f'close_ma{window}']
+            (data['Close'] - data[f'close_ma{window}']) / data[f'close_ma{window}'] 
         data[f'volume_ma{window}_ratio'] = \
             (data['Volume'] - data[f'volume_ma{window}']) / data[f'volume_ma{window}']
         
     data['open_lastclose_ratio'] = np.zeros(len(data))
     data.loc[1:, 'open_lastclose_ratio'] = \
-        (data['Open'][1:].values - data['Close'][:-1].values) / data['Close'][:-1].values
+        (data['Open'][1:].values - data['Close'][:-1].values) / data['Close'][:-1].values 
     data['high_close_ratio'] = (data['High'].values - data['Close'].values) / data['Close'].values
     data['low_close_ratio'] = (data['Low'].values - data['Close'].values) / data['Close'].values
     data['close_lastclose_ratio'] = np.zeros(len(data))
@@ -548,7 +552,7 @@ def load_data_custom(code, date_from, date_to, ver):
 
 def load_data_etf(code, date_from, date_to, ver):
 
-    columns_chart_data = COLUMNS_CHART_DATA #['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
+    columns_chart_data = COLUMNS_CHART_DATA #['Date', 'Open', 'High', 'Low', 'Close', 'Volume']랑 다름(소문자)
     columns_training_data = COLUMNS_ETF
     print(f"\tDEBUG // Loading {ver} datasets in load_data_etf()")
     print(f"\tDEBUG // train_data COLUMNS # : {len(columns_training_data)}")
@@ -589,6 +593,7 @@ def load_data_etf(code, date_from, date_to, ver):
     
     df = df_interpolate
     
+    df.to_csv(os.path.join(settings.BASE_DIR, 'data', 'etf', f'{code}_preprocessed.csv'))
 
 
     # 차트 데이터 분리
@@ -602,6 +607,12 @@ def load_data_etf(code, date_from, date_to, ver):
     print(chart_data.head(15))
     print(f"\n\tSample of training_data")
     print(training_data.head(15))
+
+    print(f"\n\tchart_data columns :")
+    print(chart_data.columns)
+    print(f"\n\ttraining_data columns :")
+    print(training_data.columns)
+    print(f"\n\tDEBUG // END of data_manager.py ")
 
     return chart_data, training_data
 
