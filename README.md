@@ -1,23 +1,5 @@
-# 파이썬를 이용한 딥러닝/강화학습 주식투자 - 파이토치와 케라스를 활용한 인공지능 퀀트 투자 시스템 (개정2판)
+# Train Trading Agent
 
-[퀀티랩 블로그 관련 포스트](http://blog.quantylab.com/pages/rltrader.html)
-
-강화학습은 스스로 학습하는 머신러닝 기법으로서 주식 데이터 학습에 잘 적용되는 기법입니다. 이 책은 파이썬을 이용한 강화학습 기반의 주식투자 시뮬레이션 프로그램을 개발하는 방법을 설명합니다. 이를 위해 이론과 코드 수준에서 상세한 설명을 덧붙였습니다. 이 책을 통해 딥러닝과 강화학습을 이해하고 이를 주식투자를 비롯한 다양한 도메인에서 활용할 수 있을 것입니다.
-
-## 구매 링크
-- [교보문고](http://www.kyobobook.co.kr/product/detailViewKor.laf?ejkGb=KOR&mallGb=KOR&barcode=9791158393205&orderClick=LAG&Kc=)
-- [Yes24](http://www.yes24.com/Product/Goods/108251432)
-
-![표지](/img/e3_introduction.jpg)
-
-## 이 책에서 다루는 내용
-- 딥러닝과 강화학습 이론
-- 주식투자에 강화학습을 적용하는 법
-- 강화학습 기반의 주식투자 시스템 개발
-- 강화학습을 위한 실제 주식 데이터 획득 및 처리
-- 강화학습으로 주식 데이터를 학습하는 법
-- 학습한 강화학습 모델을 활용하는 법
-- 강화학습 기반의 주식투자 시스템을 커스터마이징하는 법
 
 ## 환경설정
 - [Anaconda 3.7+](https://www.anaconda.com/distribution/)
@@ -87,13 +69,6 @@ conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 python main.py --mode train --ver v3 --name 005930 --stock_code 005930 --rl_method a2c --net dnn --start_date 20180101 --end_date 20191231
 ```
 
-# 학습데이터
-
-[퀀티랩 네이버 카페](https://cafe.naver.com/quantylab)에서 데이터 다운받을 수 있습니다. RLTrader 학습데이터 메뉴를 확인해 주세요.
-
-학습데이터는 v1, v2, v3, v4 버전이 존재합니다. 주로 v3, v4를 사용하시면 됩니다. v3는 종목 데이터에 일부 중요한 시장 데이터를 추가한 학습데이터 입니다. v4는 v3에 시장데이터를 대량 추가한 데이터 입니다.
-
-v3, v4 학습데이터는 시장 데이터와 종목 데이터를 합하여 사용하면 됩니다. `data_manager.py`를 참고해 주세요.
 
 ## v3
 
@@ -107,6 +82,13 @@ v3, v4 학습데이터는 시장 데이터와 종목 데이터를 합하여 사�
 - 종목 데이터: v3 종목 데이터와 동일
 - 시장 데이터: v3 시장 데이터에 다음 시장 데이터 추가
   - TBD
+
+## etf
+
+- 종목 데이터
+  - `perb, bw, MACD_ratio, RSI,slow_k,slow_d, close 의 ma 5,10,20,60,120_ratio , open_lastclose_ratio, high_close_ratio, low_close_ratio, close_lastclose_ratio,volume_lastvolume_ratio`
+- 시장 데이터
+ - TBD
 
 # 프로파일링
 - `python -m cProfile -o profile.pstats main.py ...`
