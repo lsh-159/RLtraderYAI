@@ -33,16 +33,19 @@ if __name__ == '__main__':
 
     parser.add_argument('--start_date', default='20200101')
     parser.add_argument('--end_date', default='20201231')
-
-    parser.add_argument('--pretrained_value_net', type=str, default='' , help='PATH of pretrained model. must be ended with ".mdl", ')
-    parser.add_argument('--pretrained_policy_net', type=str, default='', help='If given, load ./models/PATH.mdl. If empty, train new model')
     parser.add_argument('--save_folder', type=str, default = 'output', help='all logs will be saved into this PATH')
 
     parser.add_argument('--backend', choices=['pytorch', 'tensorflow', 'plaidml'], default='pytorch')    
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--discount_factor', type=float, default=0.7)
     parser.add_argument('--balance', type=int, default=100000000)
+
+    ####### Additional Arguments ########
+    parser.add_argument('--pretrained_value_net', type=str, default='' , help='PATH of pretrained model. must be ended with ".mdl", ')
+    parser.add_argument('--pretrained_policy_net', type=str, default='', help='If given, load ./models/PATH.mdl. If empty, train new model')
     parser.add_argument('--num_steps', type=int, default=10)
+    parser.add_argument('--num_epoches', type=int)
+    parser.add_argument('--start_eps', type=float)
     args = parser.parse_args()
 
     # 학습기 파라미터 설정
@@ -55,10 +58,22 @@ if __name__ == '__main__':
     num_epoches = 1000 if args.mode in ['train', 'update'] else 1
     num_steps = 5 if args.net in ['lstm', 'cnn'] else 1
 
+    # 커스텀 설정 221023 추가
     if args.num_steps :
         if args.net in ['lstm','cnn']:
             num_steps = args.num_steps
-            print(f'DEBUG :  Your {args.net} uses args.num_steps = {args.num_steps} , if undesired, please modify main.py')
+    if args.num_epoches :
+        if args.mode in ['train','update']:
+            num_epoches = args.num_epoches
+    if args.start_eps :
+        if args.mode in ['train','update']:
+            start_epsilon = args.start_eps        
+
+    
+
+    
+
+    
     # Backend 설정
     os.environ['RLTRADER_BACKEND'] = args.backend
     if args.backend == 'tensorflow':

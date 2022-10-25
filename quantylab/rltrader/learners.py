@@ -216,7 +216,7 @@ class ReinforcementLearner:
 
         info = (
             f'[{self.stock_code}] RL:{self.rl_method} NET:{self.net} '
-            f'LR:{self.lr} DF:{self.discount_factor} NUM_steps:{self.num_steps}days'
+            f'LR:{self.lr} DF:{self.discount_factor} STEPS:{self.num_steps}days'
         )
         with self.lock:
             logger.debug(info)
@@ -244,7 +244,7 @@ class ReinforcementLearner:
         prev_PV = self.agent.balance
 
         print(f"DEBUG in learns.py run()   prev_PV initializaed={prev_PV}, self.agent.balance ={self.agent.balance} ")
-        print(f"                           your network num_steps={self.num_steps}days,  e-greedy epsilon={self.start_epsilon} ")
+        print(f"                           your network num_steps={self.num_steps}days,  e-greedy epsilon={self.start_epsilon}, DF={self.discount_factor}, LR={self.lr}")
         print(f"Good Luck!")
 
 
@@ -264,7 +264,9 @@ class ReinforcementLearner:
                 epsilon = self.start_epsilon * (1 - (epoch / (self.num_epoches - 1)))
             else:
                 epsilon = self.start_epsilon
-
+            if epoch > 1000 :
+                epsilon = settings.AFTER_EPOCH1000_eps
+                
             for i in tqdm(range(len(self.training_data)), leave=False):
                 # 샘플 생성
                 next_sample = self.build_sample()   

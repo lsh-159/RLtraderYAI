@@ -6,6 +6,8 @@ plt.switch_backend('agg')
 from mplfinance.original_flavor import candlestick_ohlc
 from quantylab.rltrader.agent import Agent
 
+from quantylab.rltrader import settings
+
 
 lock = threading.Lock()
 
@@ -29,7 +31,7 @@ class Visualizer:
         with lock:
             # 캔버스를 초기화하고 5개의 차트를 그릴 준비
             self.fig, self.axes = plt.subplots(
-                nrows=5, ncols=1, facecolor='w', sharex=True)
+                nrows=5, ncols=1, facecolor='w', sharex=True, figsize= settings.VISUALIZER_FIGSIZE)
             for ax in self.axes:
                 # 보기 어려운 과학적 표기 비활성화
                 ax.get_xaxis().get_major_formatter() \
