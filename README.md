@@ -2,6 +2,11 @@
 
 # 실행 (최신 업데이트 221028)
 
+## 환경 다운
+
+```bash
+pip install -r requirements221028.txt
+```
 
 ## 훈련
 - `python main.py --mode train --ver etf --name 훈련결과저장별명 --stock_code DJI --rl_method a2c --net lstm --start_date 20100101 --end_date 20201231 --num_steps 150 --num_epoches 2000 `를 통해 훈련 가능합니다. 자세한건 main.py 의 parser 참조해주세요
