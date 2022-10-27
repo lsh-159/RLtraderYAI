@@ -1,5 +1,26 @@
 # Train Trading Agent
 
+# 실행 (최신 업데이트 221028)
+
+
+## 훈련
+- `python main.py --mode train --ver etf --name 훈련결과저장별명 --stock_code DJI --rl_method a2c --net lstm --start_date 20100101 --end_date 20201231 --num_steps 150 --num_epoches 2000 `를 통해 훈련 가능합니다. 자세한건 main.py 의 parser 참조해주세요
+
+- 이 중 default 값인것을 빼면 `python main.py --mode train --name agent221028 --stock_code 코드 --start_date 날짜 --end_date 날짜 --num_steps 150`로 훈련 시작합니다.
+
+## 추론
+- `python main.py --mode test --ver etf --name 추론결과저장별명 --stock_code DJI --rl_method a2c --net lstm --start_date 20210101 --end_date 20211231 --pretrained_value_net agent_221022_a2c_lstm_value.mdl --pretrained_policy_net agent_221022_a2c_lstm_policy.mdl`를 통해 Command Line에서 RLTrader 추론 가능합니다. 
+
+- 이 중 default 값인걸 빼면 `--mode test --name 별명 --stock_code 코드 --start_date 20210101 --end_date 20211231 --pretrained_value_net 별명_a2c_lstm_value.mdl --pretrained_policy_net 별명_a2c_lstm_policy.mdl`를 통해 추론 가능합니다. 
+
+
+
+
+## 예시
+
+```bash
+python main.py --mode train --ver etf --name 에이전트이름 --stock_code US500 --rl_method 강화학습알고리즘 --net 공유신경망종류 --start_date 시작날짜 --end_date 끝날짜 --save_folder 로그저장폴더 --discount_factor 감마 --num_steps LSTM/CNN인풋을몇일단위로 --num_epoches 1500 --start_eps 탐험비율 
+```
 
 ## 환경설정
 - [Anaconda 3.7+](https://www.anaconda.com/distribution/)
@@ -58,16 +79,6 @@ C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.2\libnvvp
 conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
 ```
 
-# 실행
-
-- `main.py`를 통해 Command Line에서 RLTrader 실행 가능합니다. `run_e3.cmd`를 참고해 주세요.
-- RLTrader 모듈들을 임포트하여 사용하는 것도 가능합니다. `main.py` 코드를 참고해 주세요.
-
-## 예시
-
-```bash
-python main.py --mode train --ver v3 --name 005930 --stock_code 005930 --rl_method a2c --net dnn --start_date 20180101 --end_date 20191231
-```
 
 
 ## v3

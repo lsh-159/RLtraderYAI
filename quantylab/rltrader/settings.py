@@ -12,7 +12,7 @@ BASE_DIR = os.environ.get('RLTRADER_BASE',
     os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir, os.path.pardir)))
 
 
-AFTER_EPOCH1000_eps = 0.2
+AFTER_EPOCH1000_eps = 0.1  #minimum exploration epsilon
 
 VISUALIZER_FIGSIZE = [6.4*3, 4.8*2]  #default [6.4, 4.8]
 

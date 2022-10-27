@@ -603,7 +603,7 @@ def load_data_etf(code, date_from, date_to, ver):
     
     df = df_interpolate
     
-    df.to_csv(os.path.join(settings.BASE_DIR, 'data', 'etf', f'{code}_preprocessed.csv'))
+    df.to_csv(os.path.join(settings.BASE_DIR, 'data', 'etf', f'preprocessed_{code}.csv'))
 
 
     # 차트 데이터 분리

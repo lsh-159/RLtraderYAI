@@ -42,7 +42,7 @@ KS200	코스피 200                                                      HNX30	�
 '''
 
 
-def making_csv(code) :
+def collect_ETF(code) :
     if code not in ETF_LIST:
         print('ERROR : --code is not in ETF_LIST')
         exit(0)
@@ -57,7 +57,7 @@ def making_csv(code) :
     print('------------delete volume ==0 -----------')
     print(df_valid)
 
-def making_csv_all():
+def collect_ETF_all():
     for code in ETF_LIST:
         print(code)
         df = fdr.DataReader(code)
@@ -65,7 +65,14 @@ def making_csv_all():
         df_valid.to_csv(os.path.join(settings.BASE_DIR, 'data', 'etf') + f'{code}.csv')
         print('-'*50)
         print(df_valid)
+
+def collect_MarketFeatures():
     
+    
+    
+    return
+
+
 if __name__ == '__main__':
     print("DEBUG //  here is data_collector.py.__main__  ")
     parser = argparse.ArgumentParser()
@@ -77,9 +84,9 @@ if __name__ == '__main__':
         os.makedirs(save_path)
 		
     if args.code=='all':
-        making_csv_all()
+        collect_ETF_all()
     else :
-        making_csv(args.code)
+        collect_ETF(args.code)
 
     print("-"*50,"\nDEBUG //  here is END of data_collector.py.__main__  ")
 

@@ -262,10 +262,11 @@ class ReinforcementLearner:
             # 학습을 진행할 수록 탐험 비율 감소
             if learning:
                 epsilon = self.start_epsilon * (1 - (epoch / (self.num_epoches - 1)))
+                if epsilon < settings.AFTER_EPOCH1000_eps :
+                    epsilon = settings.AFTER_EPOCH1000_eps
             else:
                 epsilon = self.start_epsilon
-            if epoch > 1000 :
-                epsilon = settings.AFTER_EPOCH1000_eps
+            
                 
             for i in tqdm(range(len(self.training_data)), leave=False):
                 # 샘플 생성
@@ -336,7 +337,7 @@ class ReinforcementLearner:
                 f'Loss:{self.loss:.6f} ET:{elapsed_time_epoch:.4f}')
 
             # 에포크 관련 정보 가시화
-            if self.num_epoches == 1 or (epoch + 1) % int(self.num_epoches / 10) == 0:
+            if self.num_epoches == 1 or (epoch + 1) % min(100,int(self.num_epoches / 10)) == 0:
                 self.visualize(epoch_str, self.num_epoches, epsilon)
 
             # 학습 관련 정보 갱신
