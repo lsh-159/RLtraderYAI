@@ -25,38 +25,55 @@ python main.py (--mode train) (--ver etf) --name train_221023 --stock_code DJI -
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test', 'update', 'predict'], default='train')
-    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom', 'etf'], default='etf', help='What version of Dataset will be used' )
-    parser.add_argument('--name', default='--name')
+    parser.add_argument('--name', default='nickname')
     parser.add_argument('--stock_code', nargs='+', help='--stock_code 1234 2345 3456 4567')
     parser.add_argument('--rl_method', choices=['dqn', 'pg', 'ac', 'a2c', 'a3c', 'monkey'], default = 'a2c')
-    parser.add_argument('--net', choices=['dnn', 'lstm', 'cnn', 'monkey'], default='dnn')
+    parser.add_argument('--net', choices=['dnn', 'lstm', 'cnn', 'monkey'], default='lstm')
 
     parser.add_argument('--start_date', default='20200101')
     parser.add_argument('--end_date', default='20201231')
-    parser.add_argument('--save_folder', type=str, default = 'output', help='all logs will be saved into this PATH')
-
-    parser.add_argument('--backend', choices=['pytorch', 'tensorflow', 'plaidml'], default='pytorch')    
-    parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--discount_factor', type=float, default=0.7)
-    parser.add_argument('--balance', type=int, default=100000000)
-
+    
     ####### Additional Arguments ########
-    parser.add_argument('--pretrained_value_net', type=str, default='' , help='PATH of pretrained model. must be ended with ".mdl", ')
-    parser.add_argument('--pretrained_policy_net', type=str, default='', help='If given, load ./models/PATH.mdl. If empty, train new model')
+    parser.add_argument('--pretrained_value_net', type=str, default='' , help='PATH of pretrained model. It must be ended with ".mdl", ')
+    parser.add_argument('--pretrained_policy_net', type=str, default='', help='If given, load ./models/PATH.mdl. If empty, train new model from scratch')
     parser.add_argument('--num_steps', type=int, default=10)
     parser.add_argument('--num_epoches', type=int)
     parser.add_argument('--start_eps', type=float)
+    parser.add_argument('--TC', type=float, default= 0.00015)
+    parser.add_argument('--minPrice', type=int, default= 100000)
+    parser.add_argument('--maxPrice', type=int, default= 10000000)  #default is now unlimited (upto its whole cash)
+
+    ####### Default Arguments ########
+    parser.add_argument('--backend', choices=['pytorch', 'tensorflow', 'plaidml'], default='pytorch')    
+    parser.add_argument('--lr', type=float, default=0.0001)
+    parser.add_argument('--balance', type=int, default=100000000)
+    parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom', 'etf'], default='etf', help='What Dataset will be used' )
+    parser.add_argument('--save_folder', type=str, default = 'output', help='which folder name all logs will be saved into.')
+
     args = parser.parse_args()
 
+
     # 학습기 파라미터 설정
-    output_name = f'{args.mode}_{args.name}_{args.rl_method}_{args.net}_{args.stock_code}_{utils.get_time_str()}'
-    learning = args.mode in ['train', 'update']
-    reuse_models = args.mode in ['test', 'update', 'predict']
-    value_network_name = f'{args.name}_{args.rl_method}_{args.net}_value.mdl'
-    policy_network_name = f'{args.name}_{args.rl_method}_{args.net}_policy.mdl'
+
+    #################################################################################
+    is_learning = args.mode in ['train', 'update']
+    reuse_models = args.mode in ['test', 'update', 'predict']    
     start_epsilon = 1 if args.mode in ['train', 'update'] else 0
     num_epoches = 1000 if args.mode in ['train', 'update'] else 1
     num_steps = 5 if args.net in ['lstm', 'cnn'] else 1
+    TC = args.TC
+
+    output_name = f'{args.mode}_{args.name}_{args.stock_code}_{utils.get_time_str()}_{args.rl_method}_{args.net}'  #./output/output_name  폴더이름에 로그 저장
+    value_network_name = f'{args.name}_{args.rl_method}_{args.net}_value.mdl'
+    policy_network_name = f'{args.name}_{args.rl_method}_{args.net}_policy.mdl'
+    v_name = f'{args.name}_value.mdl'
+    p_name = f'{args.name}_policy.mdl'
+
+
+    
+    minPrice = args.minPrice
+    maxPrice = args.maxPrice
 
     # 커스텀 설정 221023 추가
     if args.num_steps :
@@ -65,10 +82,10 @@ if __name__ == '__main__':
     if args.num_epoches :
         if args.mode in ['train','update']:
             num_epoches = args.num_epoches
-    if args.start_eps :
+    if args.start_eps==0 or args.start_eps :
         if args.mode in ['train','update']:
             start_epsilon = args.start_eps        
-
+    ####################################################################################
     
 
     
@@ -95,11 +112,15 @@ if __name__ == '__main__':
     # 모델 포멧은 TensorFlow는 h5, PyTorch는 pickle
     if args.pretrained_value_net :
         value_network_name = args.pretrained_value_net
+        reuse_models = True  #--mode train 이더라도, pretrained 아규먼트 넣어주면 reuse_mode True
     if args.pretrained_policy_net :    
         policy_network_name = args.pretrained_policy_net
+        reuse_models = True
 
     value_network_path = os.path.join(settings.BASE_DIR, 'models', value_network_name)
     policy_network_path = os.path.join(settings.BASE_DIR, 'models', policy_network_name)
+    v_path = os.path.join(settings.BASE_DIR, 'models', v_name)
+    p_path = os.path.join(settings.BASE_DIR, 'models', p_name)
 
     # 로그 기록 설정
     log_path = os.path.join(output_path, f'{output_name}.log')
@@ -131,7 +152,7 @@ if __name__ == '__main__':
 
     #################################################DEBUGGING AREA#################################################
     print('\n','-'*50 , "\tDEBUGGING..  in [main.py]\t", '-'*50 )
-    print(f"\targs.mode = {args.mode}  -> learning mode= {learning}")
+    print(f"\targs.mode = {args.mode}  -> is_learning = {is_learning}")
     if args.mode in ['train', 'update']:
         print(f"\tValue_network and Policy_network will be trained and saved in folders:\n{value_network_path}, \n{policy_network_path}")
     if args.pretrained_value_net :
@@ -151,15 +172,15 @@ if __name__ == '__main__':
         assert len(chart_data) >= num_steps
         
         # 최소/최대 단일 매매 금액 설정
-        min_trading_price = 100000
-        max_trading_price = 10000000
+        min_trading_price = minPrice
+        max_trading_price = maxPrice
 
         # 공통 파라미터 설정
         common_params = {'rl_method': args.rl_method, 
             'net': args.net, 'num_steps': num_steps, 'lr': args.lr,
             'balance': args.balance, 'num_epoches': num_epoches, 
             'discount_factor': args.discount_factor, 'start_epsilon': start_epsilon,
-            'output_path': output_path, 'reuse_models': reuse_models}
+            'output_path': output_path, 'reuse_models': reuse_models, '_Trading_charge' : TC, 'v_path' : v_path, 'p_path' : p_path}
 
         # 강화학습 시작
         learner = None
@@ -187,7 +208,7 @@ if __name__ == '__main__':
                 common_params['net'] = args.rl_method
                 common_params['num_epoches'] = 10
                 common_params['start_epsilon'] = 1
-                learning = False
+                is_learning = False
                 learner = ReinforcementLearner(**common_params)
         else:
             list_stock_code.append(stock_code)
@@ -210,7 +231,7 @@ if __name__ == '__main__':
     assert learner is not None
 
     if args.mode in ['train', 'test', 'update']:
-        learner.run(learning=learning)
+        learner.run(is_learning=is_learning)
         if args.mode in ['train', 'update']:
             learner.save_models()
     elif args.mode == 'predict':

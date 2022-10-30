@@ -22,10 +22,11 @@ class Agent:
     ACTIONS = [ACTION_BUY, ACTION_SELL, ACTION_HOLD]
     NUM_ACTIONS = len(ACTIONS)  # 인공 신경망에서 고려할 출력값의 개수
 
-    def __init__(self, environment, initial_balance, min_trading_price, max_trading_price):
+    def __init__(self, environment, initial_balance, min_trading_price, max_trading_price, _Trading_charge):
         # 현재 주식 가격을 가져오기 위해 환경 참조
         self.environment = environment
         self.initial_balance = initial_balance  # 초기 자본금
+        self.TRADING_CHARGE = _Trading_charge
 
         # 최소 단일 매매 금액, 최대 단일 매매 금액
         self.min_trading_price = min_trading_price
@@ -137,11 +138,14 @@ class Agent:
             return 3  (confidence에 따른 구매 주식 개수)
         '''
 
+        #max_limit = self.max_trading_price
+        max_limit = self.balance
+
         if np.isnan(confidence):
             return self.min_trading_price
         added_trading_price = max(min(
-            int(confidence * (self.max_trading_price - self.min_trading_price)),
-            self.max_trading_price-self.min_trading_price), 0)
+            int(confidence * (max_limit - self.min_trading_price)),
+            max_limit-self.min_trading_price), 0)
         trading_price = self.min_trading_price + added_trading_price
         return max(int(trading_price / self.environment.get_price()), 1)
 
@@ -155,6 +159,10 @@ class Agent:
             reward로 쓸 self.profitloss 리턴
 
         '''
+
+        #max_limit = self.max_trading_price
+        max_limit = self.balance
+
         if not self.validate_action(action):
             action = Agent.ACTION_HOLD
 
@@ -173,7 +181,7 @@ class Agent:
             if balance < 0:
                 trading_unit = min(
                     int(self.balance / (curr_price * (1 + self.TRADING_CHARGE))),
-                    int(self.max_trading_price / curr_price)
+                    int(max_limit / curr_price)
                 )
             # 수수료를 적용하여 총 매수 금액 산정
             invest_amount = curr_price * (1 + self.TRADING_CHARGE) * trading_unit

@@ -88,7 +88,7 @@ class Visualizer:
     def plot(self, epoch_str=None, num_epoches=None, epsilon=None,
             action_list=None, actions=None, num_stocks=None,
             outvals_value=[], outvals_policy=[], exps=None, 
-            initial_balance=None, pvs=None):
+            initial_balance=None, pvs=None, _TP =None, _MG = None):
         
         #action_list    [0,1,2]  <class list>
         #actions        [0,2,1,1,0,2,0,1, ... ]                                         <class list>    len = len(chart_data)
@@ -175,7 +175,7 @@ class Visualizer:
 
 
             # 에포크 및 탐험 비율
-            self.fig.suptitle(f'{self.title}\nEPOCH:{epoch_str}/{num_epoches} EPSILON:{epsilon:.2f}')
+            self.fig.suptitle(f'{self.title}\nEPOCH:{epoch_str}/{num_epoches} EPSILON:{epsilon:.2f}  TP:{_TP}%  MG:{_MG}%')
             # 캔버스 레이아웃 조정
             self.fig.tight_layout()  # figure의 모서리와 서브플롯의 모서리 사이의 여백 (패딩)을 설정한다.
             self.fig.subplots_adjust(top=0.85)

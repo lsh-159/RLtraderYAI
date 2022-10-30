@@ -31,7 +31,7 @@ class ReinforcementLearner:
                 discount_factor=0.9, num_epoches=1000,
                 balance=100000000, start_epsilon=1,
                 value_network=None, policy_network=None,
-                output_path='', reuse_models=True):
+                output_path='', reuse_models=True, _Trading_charge=0.00015, v_path = None, p_path = None):
         # 인자 확인
         assert min_trading_price > 0
         assert max_trading_price > 0
@@ -48,7 +48,7 @@ class ReinforcementLearner:
         self.chart_data = chart_data            #'''주식 일봉 차트 데이터 (oclhv)'''
         self.environment = Environment(chart_data)
         # 에이전트 설정
-        self.agent = Agent(self.environment, balance, min_trading_price, max_trading_price)
+        self.agent = Agent(self.environment, balance, min_trading_price, max_trading_price, _Trading_charge)
         # 학습 데이터
         self.training_data = training_data      #'''chart_data를 전처리한 데이터 (feature = 400)'''
         self.sample = None
@@ -82,6 +82,8 @@ class ReinforcementLearner:
         self.batch_size = 0
         # 로그 등 출력 경로
         self.output_path = output_path
+        self.p_path = p_path
+        self.v_path = v_path
 
     def init_value_network(self, shared_network=None, activation='linear', loss='mse'):
         if self.net == 'dnn':
@@ -188,7 +190,7 @@ class ReinforcementLearner:
                 loss += self.policy_network.train_on_batch(x, y_policy)
             self.loss = loss
 
-    def visualize(self, epoch_str, num_epoches, epsilon):
+    def visualize(self, epoch_str, num_epoches, epsilon, _TP, _MG):
         self.memory_action = [Agent.ACTION_HOLD] * (self.num_steps - 1) + self.memory_action
         self.memory_num_stocks = [0] * (self.num_steps - 1) + self.memory_num_stocks
         if self.value_network is not None:
@@ -207,11 +209,11 @@ class ReinforcementLearner:
             outvals_policy=self.memory_policy,
             exps=self.memory_exp_idx, 
             initial_balance=self.agent.initial_balance, 
-            pvs=self.memory_pv,
+            pvs=self.memory_pv, _TP =_TP, _MG = _MG
         )
         self.visualizer.save(os.path.join(self.epoch_summary_dir, f'epoch_summary_{epoch_str}.png'))
 
-    def run(self, learning=True):
+    def run(self, is_learning=True):
         print('\n','-'*50 , "\tDEBUGGING..  in [ReinforcementLearner.run()]\t", '-'*50 )
 
         info = (
@@ -243,8 +245,16 @@ class ReinforcementLearner:
 
         prev_PV = self.agent.balance
 
+
         print(f"DEBUG in learns.py run()   prev_PV initializaed={prev_PV}, self.agent.balance ={self.agent.balance} ")
         print(f"                           your network num_steps={self.num_steps}days,  e-greedy epsilon={self.start_epsilon}, DF={self.discount_factor}, LR={self.lr}")
+        if self.reuse_models :
+            if is_learning :
+                print(f"                           your pretrained model is being trained")
+            else :
+                print(f"                           your pretrained model is being tested")
+        else :
+            print(f"                           you dont have pretrained model. Training from scratch..")
         print(f"Good Luck!")
 
 
@@ -260,10 +270,8 @@ class ReinforcementLearner:
             self.reset()
 
             # 학습을 진행할 수록 탐험 비율 감소
-            if learning:
-                epsilon = self.start_epsilon * (1 - (epoch / (self.num_epoches - 1)))
-                if epsilon < settings.AFTER_EPOCH1000_eps :
-                    epsilon = settings.AFTER_EPOCH1000_eps
+            if is_learning:
+                epsilon = utils.exploration_function(self.start_epsilon, self.num_epoches, epoch)
             else:
                 epsilon = self.start_epsilon
             
@@ -322,7 +330,7 @@ class ReinforcementLearner:
                 self.exploration_cnt += 1 if exploration else 0
 
             # 에포크 종료 후 학습
-            if learning:
+            if is_learning:
                 self.fit()
 
             # 에포크 관련 정보 로그 기록
@@ -330,21 +338,29 @@ class ReinforcementLearner:
             epoch_str = str(epoch + 1).rjust(num_epoches_digit, '0')
             time_end_epoch = time.time()
             elapsed_time_epoch = time_end_epoch - time_start_epoch
+            TP = round((self.agent.portfolio_value / self.agent.initial_balance)*100,2)  #최종 수익률 : 현재 PV / 처음 자금
+            MG = round((self.environment.chart_data.iloc[-1][self.environment.PRICE_IDX] / self.environment.chart_data.iloc[0][self.environment.PRICE_IDX])*100,2)
+            #최종 시장 성장률 : 마지막 종가 / 처음 종가
+
             logger.debug(f'[{self.stock_code}][Epoch {epoch_str}/{self.num_epoches}] '
                 f'Epsilon:{epsilon:.4f} #Expl.:{self.exploration_cnt}/{self.itr_cnt} '
                 f'#Buy:{self.agent.num_buy} #Sell:{self.agent.num_sell} #Hold:{self.agent.num_hold} '
                 f'#Stocks:{self.agent.num_stocks} PV:{self.agent.portfolio_value:,.0f} '
-                f'Loss:{self.loss:.6f} ET:{elapsed_time_epoch:.4f}')
+                f'Loss:{self.loss:.6f} ET:{elapsed_time_epoch:.4f} ##TotalProfit:{TP:.2f}% ##MarketGrowth:{MG:.2f}%')
 
-            # 에포크 관련 정보 가시화
-            if self.num_epoches == 1 or (epoch + 1) % min(100,int(self.num_epoches / 10)) == 0:
-                self.visualize(epoch_str, self.num_epoches, epsilon)
+            # 에포크 관련 정보 가시화  + 가시화 할때마다 모델 저장 (덮어쓰기)
+            if self.num_epoches == 1 or ((epoch + 1) % max(1,min(100,int(self.num_epoches / 10)))) == 0 or epoch == 0:
+                self.visualize(epoch_str, self.num_epoches, epsilon, _TP = TP, _MG = MG)
+                if is_learning:
+                    self.save_models()
 
             # 학습 관련 정보 갱신
             max_portfolio_value = max(
                 max_portfolio_value, self.agent.portfolio_value)
             if self.agent.portfolio_value > self.agent.initial_balance:
                 epoch_win_cnt += 1
+            
+            
 
         # 종료 시간
         time_end = time.time()
@@ -358,8 +374,10 @@ class ReinforcementLearner:
     def save_models(self):
         if self.value_network is not None and self.value_network_path is not None:
             self.value_network.save_model(self.value_network_path)
+            self.value_network.save_model(self.v_path)
         if self.policy_network is not None and self.policy_network_path is not None:
-            self.policy_network.save_model(self.policy_network_path)
+            self.value_network.save_model(self.policy_network_path)
+            self.policy_network.save_model(self.p_path)  # pretrained 모델 하나 더 저장 (이름 짧게)
 
     def predict(self):
         # 에이전트 초기화
@@ -556,11 +574,11 @@ class A3CLearner(ReinforcementLearner):
                 policy_network=self.policy_network, **kwargs)
             self.learners.append(learner)
 
-    def run(self, learning=True):
+    def run(self, is_learning=True):
         threads = []
         for learner in self.learners:
             threads.append(threading.Thread(
-                target=learner.run, daemon=True, kwargs={'learning': learning}
+                target=learner.run, daemon=True, kwargs={'is_learning': is_learning}
             ))
         for thread in threads:
             thread.start()

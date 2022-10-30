@@ -25,6 +25,7 @@ import FinanceDataReader as fdr
 ETF_LIST = ['KS11','KQ11','KS50', 'KS100', 'KRX100', 'KS200','DJI','IXIC', 'US500','RUTNU',\
                     'VIX', 'JP225','STOXX50', 'HK50', 'CSI300', 'TWII', 'HNX30', 'SSEC', 'UK100', 'DE30', 'FCHI'] 
 
+MARKET_LIST = []
 '''
 한국 주요 지수            미국 주요 지수                              국가별 대표 지수
 
@@ -42,7 +43,7 @@ KS200	코스피 200                                                      HNX30	�
 '''
 
 
-def collect_ETF(code) :
+def collect_ETF(code, path) :
     if code not in ETF_LIST:
         print('ERROR : --code is not in ETF_LIST')
         exit(0)
@@ -50,19 +51,19 @@ def collect_ETF(code) :
     print(code)
     df = fdr.DataReader(code)
     df_valid = df[df['Volume']>0]
-    df_valid.to_csv(os.path.join(settings.BASE_DIR, 'data', 'etf') + f'{code}.csv')
+    df_valid.to_csv(path + f'{code}.csv')
 
     print('------------original etf data------------')
     print(df)
     print('------------delete volume ==0 -----------')
     print(df_valid)
 
-def collect_ETF_all():
+def collect_ETF_all(path):
     for code in ETF_LIST:
         print(code)
         df = fdr.DataReader(code)
         df_valid = df[df['Volume']>0]
-        df_valid.to_csv(os.path.join(settings.BASE_DIR, 'data', 'etf') + f'{code}.csv')
+        df_valid.to_csv(path + f'{code}.csv')
         print('-'*50)
         print(df_valid)
 
@@ -84,11 +85,13 @@ if __name__ == '__main__':
         os.makedirs(save_path)
 		
     if args.code=='all':
-        collect_ETF_all()
-    else :
-        collect_ETF(args.code)
+        collect_ETF_all(save_path)
+    elif args.code in ETF_LIST :
+        collect_ETF(args.code, save_path)
+    elif args.code == 'market' :
+        collect_MarketFeatures(save_path)
 
     print("-"*50,"\nDEBUG //  here is END of data_collector.py.__main__  ")
 
 #python data_collector.py --code all 
-
+#python data_collector.py --code market

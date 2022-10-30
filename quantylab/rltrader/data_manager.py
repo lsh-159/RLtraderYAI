@@ -147,7 +147,8 @@ COLUMNS_CUSTOM = ['per', 'pbr', 'roe'] + [
 COLUMNS_CUSTOM = list(map(
     lambda x: x if x != 'close_lastclose_ratio' else 'diffratio', COLUMNS_CUSTOM))
 
-COLUMNS_ETF = ['perb', 'bw', 'MACD_ratio', 'RSI','slow_k','slow_d' ] +[
+VALID_INDICATOR = ['perb', 'bw', 'MACD_ratio', 'RSI','slow_k','slow_d' ]
+COLUMNS_ETF =  VALID_INDICATOR +[
     'open_lastclose_ratio', 'high_close_ratio', 'low_close_ratio',
     'close_lastclose_ratio', 'volume_lastvolume_ratio',
     'close_ma5_ratio', 'volume_ma5_ratio',
@@ -157,67 +158,93 @@ COLUMNS_ETF = ['perb', 'bw', 'MACD_ratio', 'RSI','slow_k','slow_d' ] +[
     'close_ma120_ratio', 'volume_ma120_ratio',
 ] 
 
+COLUMNS_MARKET = []
+
+def bband(df, window = 20, k = 2, key= 'close'):
+    df['mbb'] = df[key].rolling(window).mean()
+    df['stddev'] = df[key].rolling(window).std()
+    df['ubb'] = df['mbb'] + 2*df['stddev']
+    df['lbb'] = df['mbb'] - 2*df['stddev'] 
+    df['perb'] = (df[key]-df['lbb']) / (df['ubb']-df['lbb'] )
+    df['bw'] = (df['ubb']-df['lbb']) / (df['mbb'])
+
+    return df
+
+def macd(df, key = 'close'):
+    macd_short, macd_long, macd_signal = 12,26,9
+    df['MACD_short'] = df[key].rolling(macd_short).mean()
+    df['MACD_long'] = df[key].rolling(macd_long).mean()
+    df['MACD'] = df.apply(lambda x : (x['MACD_short']-x['MACD_long']), axis=1)
+    df['MACD_signal'] = df['MACD'].rolling(macd_signal).mean()
+    df['MACD_ratio'] = ((df['MACD']-df['MACD_signal']) / df['MACD_long'] )
+    #df['MACD_ratio'] = (df['MACD_ratio'] - df['MACD_ratio'].mean())/df['MACD_ratio'].std()  오작동
+
+    return df
+
+def rsi(df, window = 14, key= 'close'):
+    delta =df[key].diff(1)  #df['c_diff'] = df['close']- df['close'].shift(1)
+    delta = delta.dropna() #or delta[1:]
+    rsi_U = delta.copy()
+    rsi_D = delta.copy()
+    rsi_U[rsi_U<0] =0   #U = np.where(df.diff(1)['close'] >0, df.diff(1)['close'],0)
+    rsi_D[rsi_D>0] =0   #D = np.where(df.diff(1)['close'] <0, df.diff(1)['close']*(-1),0)\
+    rsi_D = rsi_D * (-1)
+    df['U'] = rsi_U
+    df['D'] = rsi_D
+
+    AU = df['U'].rolling(window).mean()
+    AD = df['D'].rolling(window).mean()
+    RSI = (AU / (AU+AD))   # *100 하면 백분율
+    df['RSI'] = RSI
+    # df['RSI'] = (df['RSI'] - df['RSI'].mean())/df['RSI'].std()
+
+    return df
+
+def stochas(df, sto_n = 14, sto_m=1, sto_t=3):  #close, high, low 라는 컬럼이 존재해야함
+    #슬로우 스토캐스틱만 사용
+    ndays_high = df['high'].rolling(window =sto_n, min_periods=1).max()
+    ndays_low = df['low'].rolling(window=sto_n,min_periods=1).min()
+
+    ndays_high.fillna(0)
+    ndays_low.fillna(0)
+
+    df['Stochastic'] = ((df['close']-ndays_low)/(ndays_high-ndays_low)) # *100 하면 백분율
+    df['slow_k'] = df['Stochastic'].rolling(sto_m).mean()
+    df['slow_d'] = df['slow_k'].rolling(sto_t).mean()
+
+    return df
+
+def Add_market_indicator(df, key='Close', name=''):
+        '''
+        input : df (판다스 데이터 프레임)
+        df[key]을 사용해 bband, macd, rsi 를 추가하고, (df[RSI], df[macd_ratio], ...)
+        df[name-key]로 컬럼 이름을 변경한 뒤 리턴 (df[USD_KRW-RSI])
+        market feature는 close밖에 없기 때문에 high, low 필요한 stochastic은 추가 못함 
+        '''
+
+        valid_columns = ['perb', 'bw', 'MACD_ratio', 'RSI']
+        valid_columns.append(key)
+
+        df = bband(df, key=key)
+        df = macd(df, key=key)
+        df = rsi(df, key=key)
+        #df = stochas(df)  #high, low 라는 컬럼이 존재해야함
+
+        COLUMN = []
+        for col in valid_columns :
+            keyword = name + '-' + col
+            df[keyword] = df[col]
+            COLUMN.append(keyword)
+
+        df = df[COLUMN]
+
+        return df
+
 def preprocess_etf(data):
     '''
     bband, macd, rsi, stochastic 추가.  macd는 MACD_ratio 만 사용
     (나머지는 백분율 데이터라 ratio 변환 불필요)
     '''
-    # 분모 0 인경우 안만들기 위해서
-    DIV0 = 0.01
-
-
-    def bband(df, window = 20, k = 2):
-        df['mbb'] = df['close'].rolling(window).mean()
-        df['stddev'] = df['close'].rolling(window).std()
-        df['ubb'] = df['mbb'] + 2*df['stddev']
-        df['lbb'] = df['mbb'] - 2*df['stddev'] 
-        df['perb'] = (df['close']-df['lbb']) / (df['ubb']-df['lbb'] + DIV0)
-        df['bw'] = (df['ubb']-df['lbb']) / (df['mbb'] + DIV0)
-
-        return df
-
-    def macd(df):
-        macd_short, macd_long, macd_signal = 12,26,9
-        df['MACD_short'] = df['close'].rolling(macd_short).mean()
-        df['MACD_long'] = df['close'].rolling(macd_long).mean()
-        df['MACD'] = df.apply(lambda x : (x['MACD_short']-x['MACD_long']), axis=1)
-        df['MACD_signal'] = df['MACD'].rolling(macd_signal).mean()
-        df['MACD_ratio'] = (df['MACD']/(df['MACD_signal']+ DIV0))
-
-        return df
-
-    def rsi(df, window = 14):
-        delta =df['close'].diff(1)  #df['c_diff'] = df['close']- df['close'].shift(1)
-        delta = delta.dropna() #or delta[1:]
-
-        rsi_U = delta.copy()
-        rsi_D = delta.copy()
-        rsi_U[rsi_U<0] =0   #U = np.where(df.diff(1)['close'] >0, df.diff(1)['close'],0)
-        rsi_D[rsi_D>0] =0   #D = np.where(df.diff(1)['close'] <0, df.diff(1)['close']*(-1),0)
-        df['U'] = rsi_U
-        df['D'] = rsi_D
-
-        
-        AU = df['U'].rolling(window).mean()
-        AD = df['D'].rolling(window).mean()
-        RSI = (AU / (AU+AD))   # *100 하면 백분율
-        df['RSI'] = RSI
-
-        return df
-    
-    def stochas(df, sto_n = 14, sto_m=1, sto_t=3):
-        #슬로우 스토캐스틱만 사용
-        ndays_high = df['high'].rolling(window =sto_n, min_periods=1).max()
-        ndays_low = df['low'].rolling(window=sto_n,min_periods=1).min()
-
-        ndays_high.fillna(0)
-        ndays_low.fillna(0)
-
-        df['Stochastic'] = ((df['close']-ndays_low)/(ndays_high-ndays_low+ DIV0))*100
-        df['slow_k'] = df['Stochastic'].rolling(sto_m).mean()
-        df['slow_d'] = df['slow_k'].rolling(sto_t).mean()
-
-        return df
 
 
     windows = [5, 10, 20, 60, 120]
@@ -244,22 +271,21 @@ def preprocess_etf(data):
         (data['Volume'][1:].values - data['Volume'][:-1].values) 
         / data['Volume'][:-1].replace(to_replace=0, method='ffill')\
             .replace(to_replace=0, method='bfill').values)
+
     
     data = bband(data)
     data = macd(data)
     data = rsi(data)
     data = stochas(data)
     
-    for keyword in ['perb', 'bw', 'MACD_ratio', 'RSI','slow_k','slow_d' ]:
+    # 만든 bband, macd, rsi, slow_k .. 에 대한 ma 추기
+    usable_columns = [] + COLUMNS_ETF
+    for keyword in VALID_INDICATOR:
         for window in windows :
             data[f'{keyword}_ma{window}'] = data[keyword].rolling(window).mean()
+            usable_columns.append(f'{keyword}_ma{window}')
     
-    new_column_list = [] + COLUMNS_ETF
-    for keyword in ['perb', 'bw', 'MACD_ratio', 'RSI','slow_k','slow_d' ]:
-        for window in windows :    
-            new_column_list.append(f'{keyword}_ma{window}')
-
-    return data, new_column_list
+    return data, usable_columns
 
 def preprocess(data, ver='v1'):
     windows = [5, 10, 20, 60, 120]
@@ -539,8 +565,8 @@ def load_data_custom(code, date_from, date_to, ver):
     df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
     print(f"\tDEBUG // df_merge(data filtered from start_date to end_date).shape = {df.shape}")
     print("\t\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum(), "(filling 안함)")  
-    #df_fillna = df.fillna(method='ffill').reset_index(drop=True)   #ffill 방식
-    df_interpolate = df.interpolate() # interpolate 방식
+    
+    df_interpolate = df.interpolate() # interpolate 방식 #df_fillna = df.fillna(method='ffill').reset_index(drop=True)   #ffill 방식
     print("\t\tdf_merge 의 결측치(NaN, None) 총 개수 : ",df_interpolate.isnull().sum().sum(), "(filling NaN with [interpolate]) ")
     
     df = df_interpolate
@@ -562,7 +588,7 @@ def load_data_custom(code, date_from, date_to, ver):
 
 def load_data_etf(code, date_from, date_to, ver):
 
-    columns_chart_data = COLUMNS_CHART_DATA #['Date', 'Open', 'High', 'Low', 'Close', 'Volume']랑 다름(소문자)
+    columns_chart_data = COLUMNS_CHART_DATA #['Date', 'Open', 'High', 'Low', 'Close', 'Volume']랑 다름(소문자임)
     columns_training_data = COLUMNS_ETF
     print(f"\tDEBUG // Loading {ver} datasets in load_data_etf()")
     print(f"\tDEBUG // train_data COLUMNS # : {len(columns_training_data)}")
@@ -586,16 +612,10 @@ def load_data_etf(code, date_from, date_to, ver):
     df['low'] = df['Low']
     df['volume']= df['Volume']
 
-    # 아직 시장 데이터(환율) 준비 안됬으므로 pd.merge 안함 
-
-    df, TRAINING_COLUMN = preprocess_etf(df)
+    df, usable_columns = preprocess_etf(df)
     df = df.sort_values(by='date').reset_index(drop=True)       # 날짜 오름차순 정렬
 
     
-    # 기간 필터링
-    df['date'] = df['date'].str.replace('-', '')
-    df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
-
     print("\t\tETF 데이터의 결측치(NaN, None) 총 개수 : ",df.isnull().sum().sum(), "(filling 안함)")  
     df_interpolate = df.fillna(method='ffill').reset_index(drop=True)  
     df_interpolate = df.fillna(method='bfill').reset_index(drop=True) # interpolate는 앞에 값이 없으면 안채워짐
@@ -605,19 +625,16 @@ def load_data_etf(code, date_from, date_to, ver):
     
     df.to_csv(os.path.join(settings.BASE_DIR, 'data', 'etf', f'preprocessed_{code}.csv'))
 
-
+    # 기간 필터링
+    df['date'] = df['date'].str.replace('-', '')
+    df = df[(df['date'] >= date_from) & (df['date'] <= date_to)]
     # 차트 데이터 분리
     chart_data = df[columns_chart_data]
     # 학습 데이터 분리
-    training_data = df[TRAINING_COLUMN]
+    training_data = df[usable_columns]
 
     print(f"\tDEBUG // Final dataset :  ")
     print(f"\n\t\tchart_data.shape {chart_data.shape}, training_data.shape= {training_data.shape}")
-    print(f"\n\tSample of chart_data")
-    print(chart_data.head(15))
-    print(f"\n\tSample of training_data")
-    print(training_data.head(15))
-
     print(f"\n\tchart_data columns :")
     print(chart_data.columns)
     print(f"\n\ttraining_data columns :")
@@ -626,7 +643,18 @@ def load_data_etf(code, date_from, date_to, ver):
 
     return chart_data, training_data
 
-
+    # # 시장 데이터 : 미정.
+    # df_marketfeatures = None
+    # df_marketfeatures = pd.read_csv(
+    #     os.path.join(settings.BASE_DIR, 'data', ver, 'marketfeatures.csv'), 
+    #     thousands=',', header=0, converters={'date': lambda x: str(x)})
+    # # 날짜 오름차순 정렬
+    # df_marketfeatures = df_marketfeatures.sort_values(by='date').reset_index(drop=True)
+    # # 시장 데이터와 종목 데이터 합치기
+    # df = pd.merge(df_stockfeatures, df_marketfeatures, on='date', how='left', suffixes=('', '_dup'))
+    # df = df.drop(df.filter(regex='_dup$').columns.tolist(), axis=1)
+    # print(f"\tDEBUG // df_market_features.shape : {df_marketfeatures.shape} + df_stockfeatures.shape : {df_stockfeatures.shape}\
+    #                  \n\t\t= df_merge.shape : {df.shape}")
 
 
 

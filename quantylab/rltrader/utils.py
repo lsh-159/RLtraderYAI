@@ -2,6 +2,8 @@ import time
 import datetime
 import numpy as np
 
+from quantylab.rltrader import settings
+
 
 # 날짜, 시간 관련 문자열 형식
 FORMAT_DATE = "%Y%m%d"
@@ -27,6 +29,18 @@ def get_time_str():
 def sigmoid(x):
     x = max(min(x, 10), -10)
     return 1. / (1. + np.exp(-x))
+
+def exploration_function(start_eps, total_epoches, curr_epoch):
+    '''
+    if epoch <1000 :
+        return epsilon = (total_epoches - current_epoch) / total_epoches (linear하게 감소)
+    else if epoch >1000 :
+        return settings.eps (고정된 탐험률 = 0.1)
+    '''
+    epsilon = start_eps * (1 - (curr_epoch / (total_epoches - 1)))
+    if curr_epoch > 1000 and epsilon < settings.AFTER_EPOCH1000_eps :
+        epsilon = settings.AFTER_EPOCH1000_eps
+    return epsilon
 
 def reward_shaping(reward_, prev_pt, curr_pt, version=0):
     # r = ln(pt/(p_t-1))
