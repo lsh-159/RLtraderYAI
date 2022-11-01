@@ -247,12 +247,13 @@ class ReinforcementLearner:
 
 
         print(f"DEBUG in learns.py run()   prev_PV initializaed={prev_PV}, self.agent.balance ={self.agent.balance} ")
-        print(f"                           your network num_steps={self.num_steps}days,  e-greedy epsilon={self.start_epsilon}, DF={self.discount_factor}, LR={self.lr}")
+        print(f"                           your network num_steps={self.num_steps}days,  e-greedy epsilon={self.start_epsilon}, DF={self.discount_factor}, \
+        LR={self.lr}, Unlimited_investment? = {settings.UNLIMITED_INVEST}")
         if self.reuse_models :
             if is_learning :
                 print(f"                           your pretrained model is being trained")
             else :
-                print(f"                           your pretrained model is being tested")
+                print(f"                           your pretrained model is being tested : {self.policy_network_path}")
         else :
             print(f"                           you dont have pretrained model. Training from scratch..")
         print(f"Good Luck!")
@@ -312,13 +313,23 @@ class ReinforcementLearner:
 
 
                 # 행동 및 행동에 대한 결과를 기억
-                self.memory_sample.append(list(q_sample))
-                self.memory_action.append(action)
-                self.memory_reward.append(reward)
+                ''' lstm 기준 예시
+                # memory_sample = [ {[cols, ... num_features], [cols, ... num_features], ... , num_steps개 } , 
+                                    {[cols, ... num_features], [cols, ... num_features], ... , num_steps개 } ,
+                                    ... ]   
+                # memory_action = [0, 1, 2, 0, 2, 1, ...  ]
+                # memory_reward = [1.2, 1.4, 1.5, 1.4, ...]   
+                # memory_value = [(124.155, 41.814, 14.112), (101.55, 63.14, 12.2), ...]  #(실제 찍어본 값은 아님)
+                # memory_policy = [(0.5, 0.6, 0.55)  , (0.4, 0.7, 0.9), ...]
+                # memory_exp_idx = [0, 1, 2, 6, 7, 9, ...]  len(memory_exp_idx) < len(mem_value) = len(mem_reward) = ...
+                '''
+                self.memory_sample.append(list(q_sample))   
+                self.memory_action.append(action)           
+                self.memory_reward.append(reward)            
                 if self.value_network is not None:
-                    self.memory_value.append(pred_value)
-                if self.policy_network is not None:
-                    self.memory_policy.append(pred_policy)
+                    self.memory_value.append(pred_value)    
+                if self.policy_network is not None:         
+                    self.memory_policy.append(pred_policy)  
                 self.memory_pv.append(self.agent.portfolio_value)
                 self.memory_num_stocks.append(self.agent.num_stocks)
                 if exploration:
@@ -429,8 +440,8 @@ class DQNLearner(ReinforcementLearner):
             reversed(self.memory_value),
             reversed(self.memory_reward),
         )
-        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))
-        y_value = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))
+        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))  #(2000, 90, 31)
+        y_value = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))       #(2000, 3)
         value_max_next = 0
         for i, (sample, action, value, reward) in enumerate(memory):
             x[i] = sample
@@ -490,9 +501,9 @@ class ActorCriticLearner(ReinforcementLearner):
             reversed(self.memory_policy),
             reversed(self.memory_reward),
         )
-        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))
-        y_value = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))
-        y_policy = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))
+        x = np.zeros((len(self.memory_sample), self.num_steps, self.num_features))       #(2000, 90, 31)
+        y_value = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))            #(2000, 3)
+        y_policy = np.zeros((len(self.memory_sample), self.agent.NUM_ACTIONS))           #(2000, 3)
         value_max_next = 0
         for i, (sample, action, value, policy, reward) in enumerate(memory):
             x[i] = sample

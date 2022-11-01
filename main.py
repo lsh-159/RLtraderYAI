@@ -20,12 +20,21 @@ python main.py (--mode train) (--ver etf) --name train_221023 --stock_code DJI -
 --start_date 19880115 --end_date 20181231 (--save_folder output/experiment221023)
 '''
 
+'''
+python main.py --mode test --start_date 19880115 --end_date 20181231 --pretrained_value_net lsh_16_value.mdl --pretrained_policy_net lsh_16_policy.mdl
+--rl_method a3c --num_step 90 --stock_code DJI SSEC CSI300 KS11 KS100 JP225 --name lsh_16_GOOD
+'''
+
+##곧 settings로 옮길 예정
+VALID_ETF_LIST = ['KS11','KQ11','KS50', 'KS100', 'KRX100', 'KS200','DJI','IXIC', 'JP225','STOXX50', 'HK50', 'CSI300', 'TWII', 'HNX30', 'SSEC', 'UK100', 'DE30', 'FCHI'] 
+TRAIN_LIST = []
+TEST_LIST = []
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test', 'update', 'predict'], default='train')
-    parser.add_argument('--name', default='nickname')
+    parser.add_argument('--name', default='pretrained model nickname')
     parser.add_argument('--stock_code', nargs='+', help='--stock_code 1234 2345 3456 4567')
     parser.add_argument('--rl_method', choices=['dqn', 'pg', 'ac', 'a2c', 'a3c', 'monkey'], default = 'a2c')
     parser.add_argument('--net', choices=['dnn', 'lstm', 'cnn', 'monkey'], default='lstm')
@@ -50,6 +59,7 @@ if __name__ == '__main__':
     parser.add_argument('--balance', type=int, default=100000000)
     parser.add_argument('--ver', choices=['v1', 'v2', 'v3', 'v4', 'custom', 'etf'], default='etf', help='What Dataset will be used' )
     parser.add_argument('--save_folder', type=str, default = 'output', help='which folder name all logs will be saved into.')
+    parser.add_argument('--unlimited', type=bool, default = False, help='Allow max_trading_price == self.balance ? If False, max_trading_price == args.maxPrice')
 
     args = parser.parse_args()
 
@@ -64,14 +74,6 @@ if __name__ == '__main__':
     num_steps = 5 if args.net in ['lstm', 'cnn'] else 1
     TC = args.TC
 
-    output_name = f'{args.mode}_{args.name}_{args.stock_code}_{utils.get_time_str()}_{args.rl_method}_{args.net}'  #./output/output_name  폴더이름에 로그 저장
-    value_network_name = f'{args.name}_{args.rl_method}_{args.net}_value.mdl'
-    policy_network_name = f'{args.name}_{args.rl_method}_{args.net}_policy.mdl'
-    v_name = f'{args.name}_value.mdl'
-    p_name = f'{args.name}_policy.mdl'
-
-
-    
     minPrice = args.minPrice
     maxPrice = args.maxPrice
 
@@ -84,9 +86,18 @@ if __name__ == '__main__':
             num_epoches = args.num_epoches
     if args.start_eps==0 or args.start_eps :
         if args.mode in ['train','update']:
-            start_epsilon = args.start_eps        
+            start_epsilon = args.start_eps     
+    if args.unlimited == True :
+        settings.UNLIMITED_INVEST == True
+    elif args.unlimited == False :
+        settings.UNLIMITED_INVEST == False
     ####################################################################################
     
+    output_name = f'{args.mode}_{args.name}_{args.stock_code}_n{args.num_steps}_DF{args.discount_factor}_Seps{start_epsilon}_TC{TC*100}%_{args.rl_method}_{args.net}_{utils.get_time_str()}'  #./output/output_name  폴더이름에 로그 저장
+    value_network_name = output_name + '_value.mdl'
+    policy_network_name =  output_name + '_policy.mdl'         #f'{args.name}_{args.rl_method}_{args.net}_policy.mdl'
+    v_name = f'{args.name}_value.mdl'       # 줄임말
+    p_name = f'{args.name}_policy.mdl'
 
     
 
@@ -112,7 +123,7 @@ if __name__ == '__main__':
     # 모델 포멧은 TensorFlow는 h5, PyTorch는 pickle
     if args.pretrained_value_net :
         value_network_name = args.pretrained_value_net
-        reuse_models = True  #--mode train 이더라도, pretrained 아규먼트 넣어주면 reuse_mode True
+        reuse_models = True  #--mode train 이더라도, 커맨드에 --pretrained_model 아규먼트 넣어주었다면 그 모델로 학습 -> reuse_mode True
     if args.pretrained_policy_net :    
         policy_network_name = args.pretrained_policy_net
         reuse_models = True

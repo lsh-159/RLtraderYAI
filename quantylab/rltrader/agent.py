@@ -137,9 +137,10 @@ class Agent:
         output 예시
             return 3  (confidence에 따른 구매 주식 개수)
         '''
-
-        #max_limit = self.max_trading_price
-        max_limit = self.balance
+        if settings.UNLIMITED_INVEST == True :
+            max_limit = self.balance
+        else :
+        max_limit = self.max_trading_price
 
         if np.isnan(confidence):
             return self.min_trading_price

@@ -73,7 +73,7 @@ class Network:
         '''
         Q_value function을 학습시키는 함수인데
         A2C에 따르면 critic 부분 학습이
-        x.shape = (bs, 1)  :    r + gamma* Q_w(s',a') 
+        y_pred.shape = (bs, 1)  :    r + gamma* Q_w(s',a') 
         y.shape = (bs, 1)  :    Q_w(s,a)  이어야 하는데
         현재 코드는 
         x.shape = (bs, inp_dim)  or (bs, num_steps, inp_dim)

@@ -16,6 +16,7 @@ AFTER_EPOCH1000_eps = 0.05  #minimum exploration epsilon
 
 VISUALIZER_FIGSIZE = [6.4*3, 4.8*2]  #default [6.4, 4.8]
 
+UNLIMITED_INVEST = True
 
 
 # 로케일 설정
