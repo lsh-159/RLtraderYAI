@@ -387,7 +387,7 @@ class ReinforcementLearner:
             self.value_network.save_model(self.value_network_path)
             self.value_network.save_model(self.v_path)
         if self.policy_network is not None and self.policy_network_path is not None:
-            self.value_network.save_model(self.policy_network_path)
+            self.policy_network.save_model(self.policy_network_path)
             self.policy_network.save_model(self.p_path)  # pretrained 모델 하나 더 저장 (이름 짧게)
 
     def predict(self):

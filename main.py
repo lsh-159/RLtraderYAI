@@ -25,6 +25,11 @@ python main.py --mode test --start_date 19880115 --end_date 20181231 --pretraine
 --rl_method a3c --num_step 90 --stock_code DJI SSEC CSI300 KS11 KS100 JP225 --name lsh_16_GOOD
 '''
 
+# python main.py --mode test --start_date 19880115 --end_date 20211231 --pretrained_value_net lsh_23_value.mdl --pretrained_policy_net lsh_23_policy.mdl --rl_method a3c --num_step 90 --stock_code DJI SSEC CSI300 KS11 KS100 JP225 --name 23_GOOD
+
+# python main.py --mode test --start_date 19880115 --end_date 20211231 --pretrained_value_net lsh_24_value.mdl --pretrained_policy_net lsh_24_policy.mdl --rl_method a3c --num_step 90 --stock_code DJI SSEC CSI300 KS11 KS100 JP225 --name 24_GOOD
+
+
 ##곧 settings로 옮길 예정
 VALID_ETF_LIST = ['KS11','KQ11','KS50', 'KS100', 'KRX100', 'KS200','DJI','IXIC', 'JP225','STOXX50', 'HK50', 'CSI300', 'TWII', 'HNX30', 'SSEC', 'UK100', 'DE30', 'FCHI'] 
 TRAIN_LIST = []
@@ -93,7 +98,7 @@ if __name__ == '__main__':
         settings.UNLIMITED_INVEST == False
     ####################################################################################
     
-    output_name = f'{args.mode}_{args.name}_{args.stock_code}_n{args.num_steps}_DF{args.discount_factor}_Seps{start_epsilon}_TC{TC*100}%_{args.rl_method}_{args.net}_{utils.get_time_str()}'  #./output/output_name  폴더이름에 로그 저장
+    output_name = f'{args.mode}_{args.name}_{args.stock_code}_n{args.num_steps}_DF{args.discount_factor}_Seps[{start_epsilon}]_TC[{TC*100}%]_{args.rl_method}_{args.net}_{utils.get_time_str()}'  #./output/output_name  폴더이름에 로그 저장
     value_network_name = output_name + '_value.mdl'
     policy_network_name =  output_name + '_policy.mdl'         #f'{args.name}_{args.rl_method}_{args.net}_policy.mdl'
     v_name = f'{args.name}_value.mdl'       # 줄임말
